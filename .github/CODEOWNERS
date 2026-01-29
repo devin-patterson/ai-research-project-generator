@@ -1,0 +1,14 @@
+# Default owners for everything in the repo
+* @depatter
+
+# API and core functionality
+/app/ @depatter
+/llm_provider.py @depatter
+/academic_search.py @depatter
+
+# Documentation
+*.md @depatter
+/docs/ @depatter
+
+# CI/CD
+/.github/ @depatter

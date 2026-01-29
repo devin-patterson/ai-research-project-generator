@@ -94,7 +94,6 @@ jobs:
       
       - name: Run Bandit
         run: uv run bandit -r app/ llm_provider.py academic_search.py -c pyproject.toml -f json -o bandit-report.json
-        continue-on-error: true
       
       - name: Upload Bandit Report
         uses: actions/upload-artifact@v4
@@ -116,4 +115,3 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           extra_args: --only-verified
-        continue-on-error: true

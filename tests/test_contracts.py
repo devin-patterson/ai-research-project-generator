@@ -13,7 +13,6 @@ from pydantic import ValidationError
 
 from app.schemas.research import (
     ResearchRequest,
-    ResearchResponse,
     ResearchType,
     AcademicLevel,
 )
@@ -28,6 +27,7 @@ from app.workflows.agents import (
 # =============================================================================
 # API Request Contract Tests
 # =============================================================================
+
 
 class TestResearchRequestContract:
     """Contract tests for ResearchRequest schema."""
@@ -70,7 +70,7 @@ class TestResearchRequestContract:
                 research_question="How does AI work in education?",
             )
         assert "at least 10 characters" in str(exc.value)
-        
+
         # Too long
         with pytest.raises(ValidationError) as exc:
             ResearchRequest(
@@ -88,7 +88,7 @@ class TestResearchRequestContract:
                 research_question="How does AI affect learning?",
                 paper_limit=0,
             )
-        
+
         # Too high
         with pytest.raises(ValidationError):
             ResearchRequest(
@@ -121,7 +121,7 @@ class TestResearchRequestContract:
             "experimental",
             "literature_review",
         ]
-        
+
         for rt in valid_types:
             request = ResearchRequest(
                 topic="AI in education research",
@@ -144,6 +144,7 @@ class TestResearchRequestContract:
 # LLM Output Contract Tests
 # =============================================================================
 
+
 class TestTopicAnalysisContract:
     """Contract tests for TopicAnalysis LLM output schema."""
 
@@ -158,7 +159,7 @@ class TestTopicAnalysisContract:
             potential_challenges=["data privacy", "bias"],
             interdisciplinary_connections=["psychology", "computer science"],
         )
-        
+
         assert len(analysis.key_concepts) >= 1
         assert analysis.research_scope in ["narrow", "moderate", "broad"]
         assert analysis.complexity_level in ["basic", "intermediate", "advanced"]
@@ -197,7 +198,7 @@ class TestPaperSynthesisContract:
             key_findings=["AI improves engagement"],
             synthesis_narrative="The literature shows...",
         )
-        
+
         assert synthesis.papers_analyzed >= 0
         assert len(synthesis.main_themes) >= 1
         assert isinstance(synthesis.synthesis_narrative, str)
@@ -228,7 +229,7 @@ class TestMethodologyRecommendationContract:
             quality_criteria=["validity", "reliability"],
             potential_limitations=["sample size"],
         )
-        
+
         assert methodology.primary_methodology != ""
         assert len(methodology.data_collection_methods) >= 1
         assert len(methodology.analysis_techniques) >= 1
@@ -253,7 +254,7 @@ class TestResearchProjectOutputContract:
             quality_criteria=["criteria"],
             potential_limitations=["limitation"],
         )
-        
+
         # Valid score
         output = ResearchProjectOutput(
             title="Test Project",
@@ -266,7 +267,7 @@ class TestResearchProjectOutputContract:
             quality_score=75.5,
         )
         assert 0 <= output.quality_score <= 100
-        
+
         # Score too high
         with pytest.raises(ValidationError):
             ResearchProjectOutput(
@@ -279,7 +280,7 @@ class TestResearchProjectOutputContract:
                 timeline_estimate="6 months",
                 quality_score=150,
             )
-        
+
         # Score too low
         with pytest.raises(ValidationError):
             ResearchProjectOutput(
@@ -298,19 +299,20 @@ class TestResearchProjectOutputContract:
 # Inter-Service Contract Tests
 # =============================================================================
 
+
 class TestWorkflowStateContract:
     """Contract tests for workflow state transitions."""
 
     def test_research_state_required_fields(self):
         """Contract: ResearchState must have topic and research_question."""
         from app.workflows.research_workflow import ResearchState
-        
+
         # This is a TypedDict, so we test the expected structure
         state: ResearchState = {
             "topic": "AI in education",
             "research_question": "How does AI affect learning?",
         }
-        
+
         assert "topic" in state
         assert "research_question" in state
 
@@ -324,7 +326,7 @@ class TestWorkflowStateContract:
             "methodology_recommendations",
             "quality_score",
         ]
-        
+
         # Mock output structure
         output = {
             "topic": "AI in education",
@@ -334,6 +336,6 @@ class TestWorkflowStateContract:
             "methodology_recommendations": ["PRISMA guidelines"],
             "quality_score": 85.0,
         }
-        
+
         for key in expected_output_keys:
             assert key in output, f"Missing required key: {key}"

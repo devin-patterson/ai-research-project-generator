@@ -11,7 +11,6 @@ to detect regressions in output quality. These tests:
 """
 
 import json
-import hashlib
 from pathlib import Path
 from typing import Any, Optional
 from dataclasses import dataclass, field
@@ -30,14 +29,14 @@ GOLDEN_SET_DIR = Path(__file__).parent / "golden_sets"
 @dataclass
 class GoldenTestCase:
     """A golden test case with input, expected output, and metadata."""
-    
+
     id: str
     name: str
     input_data: dict[str, Any]
     golden_output: dict[str, Any]
     tolerance: float = 0.8  # Similarity threshold for fuzzy matching
     tags: list[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -47,7 +46,7 @@ class GoldenTestCase:
             "tolerance": self.tolerance,
             "tags": self.tags,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "GoldenTestCase":
         return cls(**data)
@@ -55,54 +54,54 @@ class GoldenTestCase:
 
 class GoldenSetManager:
     """Manages golden test sets for regression testing."""
-    
+
     def __init__(self, golden_dir: Path = GOLDEN_SET_DIR):
         self.golden_dir = golden_dir
         self.golden_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def save_golden(self, test_case: GoldenTestCase, category: str = "default") -> None:
         """Save a golden test case."""
         category_dir = self.golden_dir / category
         category_dir.mkdir(exist_ok=True)
-        
+
         file_path = category_dir / f"{test_case.id}.json"
         with open(file_path, "w") as f:
             json.dump(test_case.to_dict(), f, indent=2)
-        
+
         logger.info(f"Saved golden test case: {test_case.id}")
-    
+
     def load_golden(self, test_id: str, category: str = "default") -> Optional[GoldenTestCase]:
         """Load a golden test case by ID."""
         file_path = self.golden_dir / category / f"{test_id}.json"
-        
+
         if not file_path.exists():
             return None
-        
+
         with open(file_path) as f:
             data = json.load(f)
-        
+
         return GoldenTestCase.from_dict(data)
-    
+
     def load_all_golden(self, category: str = "default") -> list[GoldenTestCase]:
         """Load all golden test cases in a category."""
         category_dir = self.golden_dir / category
-        
+
         if not category_dir.exists():
             return []
-        
+
         test_cases = []
         for file_path in category_dir.glob("*.json"):
             with open(file_path) as f:
                 data = json.load(f)
             test_cases.append(GoldenTestCase.from_dict(data))
-        
+
         return test_cases
 
 
 def calculate_similarity(output: dict, golden: dict) -> float:
     """
     Calculate similarity between output and golden reference.
-    
+
     Uses a combination of:
     - Key overlap
     - Value similarity for matching keys
@@ -110,18 +109,18 @@ def calculate_similarity(output: dict, golden: dict) -> float:
     """
     if not output or not golden:
         return 0.0
-    
+
     # Key overlap score
     output_keys = set(output.keys())
     golden_keys = set(golden.keys())
     key_overlap = len(output_keys & golden_keys) / len(golden_keys) if golden_keys else 0
-    
+
     # Value similarity for matching keys
     value_scores = []
     for key in output_keys & golden_keys:
         output_val = output[key]
         golden_val = golden[key]
-        
+
         if isinstance(golden_val, list) and isinstance(output_val, list):
             # List overlap
             if golden_val:
@@ -138,9 +137,9 @@ def calculate_similarity(output: dict, golden: dict) -> float:
             value_scores.append(1.0)
         else:
             value_scores.append(0.0)
-    
+
     value_score = sum(value_scores) / len(value_scores) if value_scores else 0
-    
+
     # Combined score
     return 0.4 * key_overlap + 0.6 * value_score
 
@@ -260,18 +259,19 @@ METHODOLOGY_GOLDEN_CASES = [
 # Golden Set Tests
 # =============================================================================
 
+
 class TestGoldenSetInfrastructure:
     """Tests for the golden set infrastructure itself."""
 
     def test_golden_test_case_serialization(self):
         """Test that golden test cases can be serialized and deserialized."""
         original = TOPIC_ANALYSIS_GOLDEN_CASES[0]
-        
+
         # Serialize
         data = original.to_dict()
         assert "id" in data
         assert "golden_output" in data
-        
+
         # Deserialize
         restored = GoldenTestCase.from_dict(data)
         assert restored.id == original.id
@@ -281,7 +281,7 @@ class TestGoldenSetInfrastructure:
         """Test similarity calculation with identical outputs."""
         output = {"key1": "value1", "key2": ["a", "b", "c"]}
         golden = {"key1": "value1", "key2": ["a", "b", "c"]}
-        
+
         similarity = calculate_similarity(output, golden)
         assert similarity == 1.0
 
@@ -289,7 +289,7 @@ class TestGoldenSetInfrastructure:
         """Test similarity calculation with partial match."""
         output = {"key1": "value1", "key2": ["a", "b"]}
         golden = {"key1": "value1", "key2": ["a", "b", "c", "d"]}
-        
+
         similarity = calculate_similarity(output, golden)
         assert 0.5 < similarity < 1.0
 
@@ -297,7 +297,7 @@ class TestGoldenSetInfrastructure:
         """Test similarity calculation with no match."""
         output = {"different_key": "different_value"}
         golden = {"key1": "value1"}
-        
+
         similarity = calculate_similarity(output, golden)
         assert similarity < 0.5
 
@@ -309,7 +309,7 @@ class TestTopicAnalysisGoldenSet:
     def test_topic_analysis_structure(self, golden_case: GoldenTestCase):
         """Test that topic analysis output has expected structure."""
         golden = golden_case.golden_output
-        
+
         # Verify golden output structure
         assert "key_concepts" in golden
         assert "research_scope" in golden
@@ -337,7 +337,7 @@ class TestMethodologyGoldenSet:
     def test_methodology_structure(self, golden_case: GoldenTestCase):
         """Test that methodology output has expected structure."""
         golden = golden_case.golden_output
-        
+
         assert "primary_methodology" in golden
         assert "data_collection_methods" in golden
         assert "analysis_techniques" in golden
@@ -349,41 +349,43 @@ class TestMethodologyGoldenSet:
 # Regression Detection Tests (Mock LLM Output Comparison)
 # =============================================================================
 
+
 class TestRegressionDetection:
     """Tests that detect regressions by comparing against golden outputs."""
 
     def test_detect_missing_key_concepts(self):
         """Detect regression when key concepts are missing."""
         golden = TOPIC_ANALYSIS_GOLDEN_CASES[0].golden_output
-        
+
         # Simulated regression: completely different output missing most fields
         regressed_output = {
             "key_concepts": ["AI"],  # Only 1 concept instead of 6
             "research_scope": "unknown",  # Invalid scope
             # Missing other fields entirely
         }
-        
+
         similarity = calculate_similarity(regressed_output, golden)
-        assert similarity < TOPIC_ANALYSIS_GOLDEN_CASES[0].tolerance, \
+        assert similarity < TOPIC_ANALYSIS_GOLDEN_CASES[0].tolerance, (
             f"Regression not detected: similarity={similarity}"
+        )
 
     def test_detect_scope_change(self):
         """Detect regression when scope changes unexpectedly."""
         golden = TOPIC_ANALYSIS_GOLDEN_CASES[0].golden_output
-        
+
         # Simulated regression: wrong scope
         regressed_output = {
             **golden,
             "research_scope": "narrow",  # Changed from "broad"
         }
-        
+
         # This should still pass similarity but flag the specific change
         assert regressed_output["research_scope"] != golden["research_scope"]
 
     def test_no_regression_with_similar_output(self):
         """Verify no false positive when output is similar."""
         golden = TOPIC_ANALYSIS_GOLDEN_CASES[0].golden_output
-        
+
         # Similar output with minor variations
         similar_output = {
             "key_concepts": [
@@ -406,7 +408,8 @@ class TestRegressionDetection:
                 "Digital divide",
             ],
         }
-        
+
         similarity = calculate_similarity(similar_output, golden)
-        assert similarity >= TOPIC_ANALYSIS_GOLDEN_CASES[0].tolerance, \
+        assert similarity >= TOPIC_ANALYSIS_GOLDEN_CASES[0].tolerance, (
             f"False positive regression detected: similarity={similarity}"
+        )

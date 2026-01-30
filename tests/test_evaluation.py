@@ -10,40 +10,40 @@ These tests evaluate LLM output quality using metrics like:
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
 from typing import Any
 
 # DeepEval imports (with graceful fallback for CI without API keys)
 try:
-    from deepeval import assert_test, evaluate
     from deepeval.metrics import (
         AnswerRelevancyMetric,
-        FaithfulnessMetric,
         HallucinationMetric,
-        GEval,
     )
     from deepeval.test_case import LLMTestCase
+
     DEEPEVAL_AVAILABLE = True
 except ImportError:
     DEEPEVAL_AVAILABLE = False
-
+    LLMTestCase = None
+    AnswerRelevancyMetric = None
+    HallucinationMetric = None
 
 # =============================================================================
 # Custom Evaluation Metrics
 # =============================================================================
 
+
 class ResearchQualityMetric:
     """Custom metric for evaluating research output quality."""
-    
+
     def __init__(self, threshold: float = 0.7):
         self.threshold = threshold
         self.score = 0.0
         self.reason = ""
-    
+
     def measure(self, test_case: dict) -> float:
         """
         Measure research quality based on multiple factors.
-        
+
         Factors:
         - Key concepts coverage (0-25 points)
         - Methodology appropriateness (0-25 points)
@@ -51,11 +51,10 @@ class ResearchQualityMetric:
         - Coherence and structure (0-25 points)
         """
         output = test_case.get("actual_output", {})
-        expected = test_case.get("expected_output", {})
-        
+
         score = 0.0
         reasons = []
-        
+
         # Key concepts coverage
         if "key_concepts" in output:
             concepts = output["key_concepts"]
@@ -67,7 +66,7 @@ class ResearchQualityMetric:
                 reasons.append("Adequate key concept coverage")
             else:
                 reasons.append("Insufficient key concepts")
-        
+
         # Methodology appropriateness
         if "methodology_recommendations" in output:
             methods = output["methodology_recommendations"]
@@ -79,7 +78,7 @@ class ResearchQualityMetric:
                 reasons.append("Basic methodology provided")
             else:
                 reasons.append("Missing methodology")
-        
+
         # Source quality (papers)
         if "papers" in output:
             papers = output["papers"]
@@ -91,7 +90,7 @@ class ResearchQualityMetric:
                 reasons.append("Adequate sources")
             else:
                 reasons.append("Limited sources")
-        
+
         # Coherence (check for required fields)
         required_fields = ["topic", "research_question", "quality_score"]
         present_fields = sum(1 for f in required_fields if f in output)
@@ -99,38 +98,54 @@ class ResearchQualityMetric:
         score += coherence_score
         if coherence_score >= 20:
             reasons.append("Good structural coherence")
-        
+
         self.score = score / 100.0
         self.reason = "; ".join(reasons)
-        
+
         return self.score
-    
+
     def is_successful(self) -> bool:
         return self.score >= self.threshold
 
 
 class TopicRelevanceMetric:
     """Metric for evaluating topic relevance of LLM outputs."""
-    
+
     def __init__(self, threshold: float = 0.6):
         self.threshold = threshold
         self.score = 0.0
         self.reason = ""
-    
+
     def measure(self, test_case: dict) -> float:
         """
         Measure how relevant the output is to the input topic.
-        
+
         Uses keyword overlap and semantic similarity approximation.
         """
         input_text = test_case.get("input", "").lower()
         output = test_case.get("actual_output", {})
-        
+
         # Extract words from input
         input_words = set(input_text.split())
-        stop_words = {"the", "a", "an", "of", "in", "on", "for", "to", "and", "or", "is", "are", "how", "does", "what"}
+        stop_words = {
+            "the",
+            "a",
+            "an",
+            "of",
+            "in",
+            "on",
+            "for",
+            "to",
+            "and",
+            "or",
+            "is",
+            "are",
+            "how",
+            "does",
+            "what",
+        }
         input_keywords = input_words - stop_words
-        
+
         # Extract words from output
         output_text = ""
         if isinstance(output, dict):
@@ -141,21 +156,21 @@ class TopicRelevanceMetric:
                     output_text += " " + " ".join(str(v) for v in value)
         elif isinstance(output, str):
             output_text = output
-        
+
         output_words = set(output_text.lower().split())
-        
+
         # Calculate overlap
         if not input_keywords:
             self.score = 0.5  # Neutral if no keywords
             self.reason = "No input keywords to compare"
             return self.score
-        
+
         overlap = len(input_keywords & output_words)
         self.score = min(1.0, overlap / len(input_keywords))
         self.reason = f"Keyword overlap: {overlap}/{len(input_keywords)}"
-        
+
         return self.score
-    
+
     def is_successful(self) -> bool:
         return self.score >= self.threshold
 
@@ -163,6 +178,7 @@ class TopicRelevanceMetric:
 # =============================================================================
 # Test Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def sample_research_output() -> dict[str, Any]:
@@ -184,9 +200,7 @@ def sample_research_output() -> dict[str, Any]:
             "Survey of educators and students",
             "Longitudinal outcome tracking",
         ],
-        "papers": [
-            {"title": f"Paper {i}", "year": 2023} for i in range(12)
-        ],
+        "papers": [{"title": f"Paper {i}", "year": 2023} for i in range(12)],
         "quality_score": 85.0,
     }
 
@@ -207,44 +221,45 @@ def sample_poor_output() -> dict[str, Any]:
 # Custom Metric Tests
 # =============================================================================
 
+
 class TestResearchQualityMetric:
     """Tests for the custom ResearchQualityMetric."""
 
     def test_high_quality_output(self, sample_research_output):
         """Test that high quality output scores well."""
         metric = ResearchQualityMetric(threshold=0.7)
-        
+
         test_case = {
             "actual_output": sample_research_output,
             "expected_output": {},
         }
-        
+
         score = metric.measure(test_case)
-        
+
         assert score >= 0.7, f"High quality output should score >= 0.7, got {score}"
         assert metric.is_successful()
 
     def test_poor_quality_output(self, sample_poor_output):
         """Test that poor quality output scores low."""
         metric = ResearchQualityMetric(threshold=0.7)
-        
+
         test_case = {
             "actual_output": sample_poor_output,
             "expected_output": {},
         }
-        
+
         score = metric.measure(test_case)
-        
+
         assert score < 0.5, f"Poor quality output should score < 0.5, got {score}"
         assert not metric.is_successful()
 
     def test_metric_provides_reasons(self, sample_research_output):
         """Test that metric provides explanatory reasons."""
         metric = ResearchQualityMetric()
-        
+
         test_case = {"actual_output": sample_research_output}
         metric.measure(test_case)
-        
+
         assert metric.reason != ""
         assert "concept" in metric.reason.lower() or "methodology" in metric.reason.lower()
 
@@ -255,20 +270,20 @@ class TestTopicRelevanceMetric:
     def test_relevant_output(self, sample_research_output):
         """Test that relevant output scores well."""
         metric = TopicRelevanceMetric(threshold=0.5)
-        
+
         test_case = {
             "input": "Impact of artificial intelligence on education",
             "actual_output": sample_research_output,
         }
-        
+
         score = metric.measure(test_case)
-        
+
         assert score >= 0.5, f"Relevant output should score >= 0.5, got {score}"
 
     def test_irrelevant_output(self):
         """Test that irrelevant output scores low."""
         metric = TopicRelevanceMetric(threshold=0.5)
-        
+
         test_case = {
             "input": "Impact of artificial intelligence on education",
             "actual_output": {
@@ -276,9 +291,9 @@ class TestTopicRelevanceMetric:
                 "key_concepts": ["pasta", "sauce", "ingredients"],
             },
         }
-        
+
         score = metric.measure(test_case)
-        
+
         assert score < 0.3, f"Irrelevant output should score < 0.3, got {score}"
 
 
@@ -286,10 +301,11 @@ class TestTopicRelevanceMetric:
 # DeepEval Integration Tests (Skipped if DeepEval not available)
 # =============================================================================
 
+
 @pytest.mark.skipif(not DEEPEVAL_AVAILABLE, reason="DeepEval not installed")
 class TestDeepEvalIntegration:
     """Integration tests using DeepEval metrics.
-    
+
     Note: These tests require OPENAI_API_KEY to be set for actual DeepEval metrics.
     We skip them in CI environments without API keys.
     """
@@ -300,12 +316,12 @@ class TestDeepEvalIntegration:
         test_case = LLMTestCase(
             input="What are the key benefits of AI in education?",
             actual_output="AI in education provides personalized learning, "
-                         "automated assessment, and adaptive content delivery.",
+            "automated assessment, and adaptive content delivery.",
         )
-        
+
         metric = AnswerRelevancyMetric(threshold=0.7)
         metric.measure(test_case)
-        
+
         assert metric.score >= 0.7
 
     @pytest.mark.skip(reason="Requires OPENAI_API_KEY - run manually with API key set")
@@ -316,10 +332,10 @@ class TestDeepEvalIntegration:
             actual_output="The capital of France is Paris.",
             context=["France is a country in Europe.", "Paris is the capital of France."],
         )
-        
+
         metric = HallucinationMetric(threshold=0.5)
         metric.measure(test_case)
-        
+
         # Low hallucination score is good
         assert metric.score <= 0.5
 
@@ -327,6 +343,7 @@ class TestDeepEvalIntegration:
 # =============================================================================
 # Evaluation Suite Tests
 # =============================================================================
+
 
 class TestEvaluationSuite:
     """Comprehensive evaluation suite for research outputs."""
@@ -337,23 +354,25 @@ class TestEvaluationSuite:
             ResearchQualityMetric(threshold=0.6),
             TopicRelevanceMetric(threshold=0.4),
         ]
-        
+
         test_case = {
             "input": "Impact of artificial intelligence on education",
             "actual_output": sample_research_output,
             "expected_output": {},
         }
-        
+
         results = []
         for metric in metrics:
             score = metric.measure(test_case)
-            results.append({
-                "metric": metric.__class__.__name__,
-                "score": score,
-                "passed": metric.is_successful(),
-                "reason": metric.reason,
-            })
-        
+            results.append(
+                {
+                    "metric": metric.__class__.__name__,
+                    "score": score,
+                    "passed": metric.is_successful(),
+                    "reason": metric.reason,
+                }
+            )
+
         # All metrics should pass for good output
         assert all(r["passed"] for r in results), f"Failed metrics: {results}"
 
@@ -363,30 +382,32 @@ class TestEvaluationSuite:
             ResearchQualityMetric(threshold=0.6),
             TopicRelevanceMetric(threshold=0.4),
         ]
-        
+
         test_case = {
             "input": "AI in education",
             "actual_output": sample_research_output,
         }
-        
+
         report = {
             "test_case_id": "eval_001",
             "input": test_case["input"],
             "metrics": [],
             "overall_pass": True,
         }
-        
+
         for metric in metrics:
             score = metric.measure(test_case)
-            report["metrics"].append({
-                "name": metric.__class__.__name__,
-                "score": round(score, 3),
-                "threshold": metric.threshold,
-                "passed": metric.is_successful(),
-            })
+            report["metrics"].append(
+                {
+                    "name": metric.__class__.__name__,
+                    "score": round(score, 3),
+                    "threshold": metric.threshold,
+                    "passed": metric.is_successful(),
+                }
+            )
             if not metric.is_successful():
                 report["overall_pass"] = False
-        
+
         # Verify report structure
         assert "test_case_id" in report
         assert "metrics" in report
@@ -397,6 +418,7 @@ class TestEvaluationSuite:
 # =============================================================================
 # Batch Evaluation Tests
 # =============================================================================
+
 
 class TestBatchEvaluation:
     """Tests for batch evaluation of multiple outputs."""
@@ -427,24 +449,26 @@ class TestBatchEvaluation:
                 },
             },
         ]
-        
+
         metric = ResearchQualityMetric(threshold=0.5)
-        
+
         results = []
         for tc in test_cases:
             score = metric.measure(tc)
-            results.append({
-                "id": tc["id"],
-                "score": score,
-                "passed": metric.is_successful(),
-            })
-        
+            results.append(
+                {
+                    "id": tc["id"],
+                    "score": score,
+                    "passed": metric.is_successful(),
+                }
+            )
+
         # At least one should pass
         assert any(r["passed"] for r in results)
-        
+
         # Calculate aggregate stats
         avg_score = sum(r["score"] for r in results) / len(results)
         pass_rate = sum(1 for r in results if r["passed"]) / len(results)
-        
+
         assert avg_score > 0.3
         assert pass_rate >= 0.5

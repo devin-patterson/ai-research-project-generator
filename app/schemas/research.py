@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class ResearchType(str, Enum):
     """Supported research methodologies"""
+
     SYSTEMATIC_REVIEW = "systematic_review"
     SCOPING_REVIEW = "scoping_review"
     META_ANALYSIS = "meta_analysis"
@@ -26,6 +27,7 @@ class ResearchType(str, Enum):
 
 class AcademicLevel(str, Enum):
     """Academic levels for research projects"""
+
     UNDERGRADUATE = "undergraduate"
     GRADUATE = "graduate"
     DOCTORAL = "doctoral"
@@ -35,6 +37,7 @@ class AcademicLevel(str, Enum):
 
 class LLMProvider(str, Enum):
     """Supported LLM providers"""
+
     OLLAMA = "ollama"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -44,99 +47,84 @@ class LLMProvider(str, Enum):
 class ResearchRequest(BaseModel):
     """
     Request schema for generating a research project.
-    
+
     This is the primary input interface for the research generation API.
     """
+
     topic: str = Field(
         ...,
         min_length=10,
         max_length=2000,
         description="The research topic or subject area to investigate",
-        examples=["Impact of remote work on employee productivity and well-being"]
+        examples=["Impact of remote work on employee productivity and well-being"],
     )
-    
+
     research_question: str = Field(
         ...,
         min_length=10,
         max_length=1000,
         description="The primary research question to address",
-        examples=["How has the shift to remote work affected employee productivity and mental health outcomes?"]
+        examples=[
+            "How has the shift to remote work affected employee productivity and mental health outcomes?"
+        ],
     )
-    
+
     research_type: ResearchType = Field(
         default=ResearchType.SYSTEMATIC_REVIEW,
-        description="The type of research methodology to use"
+        description="The type of research methodology to use",
     )
-    
+
     academic_level: AcademicLevel = Field(
-        default=AcademicLevel.GRADUATE,
-        description="The academic level for the research project"
+        default=AcademicLevel.GRADUATE, description="The academic level for the research project"
     )
-    
+
     discipline: str = Field(
         default="general",
         min_length=2,
         max_length=100,
         description="The academic discipline or field of study",
-        examples=["psychology", "computer science", "medicine", "education"]
+        examples=["psychology", "computer science", "medicine", "education"],
     )
-    
+
     # Optional configuration
     target_publication: Optional[str] = Field(
-        default=None,
-        max_length=200,
-        description="Target journal or publication venue"
+        default=None, max_length=200, description="Target journal or publication venue"
     )
-    
+
     citation_style: str = Field(
-        default="APA",
-        description="Citation style to use (APA, MLA, Chicago, etc.)"
+        default="APA", description="Citation style to use (APA, MLA, Chicago, etc.)"
     )
-    
+
     # Search configuration
     search_papers: bool = Field(
-        default=True,
-        description="Whether to search academic databases for relevant papers"
+        default=True, description="Whether to search academic databases for relevant papers"
     )
-    
+
     paper_limit: int = Field(
         default=20,
         ge=1,
         le=100,
-        description="Maximum number of papers to retrieve from academic search"
+        description="Maximum number of papers to retrieve from academic search",
     )
-    
+
     year_start: Optional[int] = Field(
-        default=None,
-        ge=1900,
-        le=2030,
-        description="Start year for paper search range"
+        default=None, ge=1900, le=2030, description="Start year for paper search range"
     )
-    
+
     year_end: Optional[int] = Field(
-        default=None,
-        ge=1900,
-        le=2030,
-        description="End year for paper search range"
+        default=None, ge=1900, le=2030, description="End year for paper search range"
     )
-    
+
     # LLM configuration
-    use_llm: bool = Field(
-        default=True,
-        description="Whether to use LLM for enhanced analysis"
-    )
-    
-    llm_model: str = Field(
-        default="llama3.1:8b",
-        description="LLM model to use for analysis"
-    )
-    
+    use_llm: bool = Field(default=True, description="Whether to use LLM for enhanced analysis")
+
+    llm_model: str = Field(default="llama3.1:8b", description="LLM model to use for analysis")
+
     # Output configuration
     output_format: str = Field(
-        default="markdown",
-        description="Output format (markdown, json, html)"
+        default="markdown", description="Output format (markdown, json, html)"
     )
-    
+
     @field_validator("year_end")
     @classmethod
     def validate_year_range(cls, v: Optional[int], info) -> Optional[int]:
@@ -145,7 +133,7 @@ class ResearchRequest(BaseModel):
             if v < info.data["year_start"]:
                 raise ValueError("year_end must be greater than or equal to year_start")
         return v
-    
+
     model_config = {
         "json_schema_extra": {
             "examples": [
@@ -160,7 +148,7 @@ class ResearchRequest(BaseModel):
                     "year_start": 2020,
                     "year_end": 2026,
                     "use_llm": True,
-                    "llm_model": "llama3.1:8b"
+                    "llm_model": "llama3.1:8b",
                 }
             ]
         }
@@ -169,6 +157,7 @@ class ResearchRequest(BaseModel):
 
 class PaperSchema(BaseModel):
     """Schema for academic paper metadata"""
+
     title: str
     authors: List[str]
     abstract: Optional[str] = None
@@ -183,6 +172,7 @@ class PaperSchema(BaseModel):
 
 class ValidationReportSchema(BaseModel):
     """Schema for validation report"""
+
     overall_score: float = Field(ge=0.0, le=1.0)
     issues: List[Dict[str, Any]] = []
     recommendations: List[str] = []
@@ -191,6 +181,7 @@ class ValidationReportSchema(BaseModel):
 
 class PaperStatistics(BaseModel):
     """Statistics about discovered papers"""
+
     total_papers: int
     papers_with_abstracts: int
     papers_with_pdf: int
@@ -202,48 +193,49 @@ class PaperStatistics(BaseModel):
 class ResearchResponse(BaseModel):
     """
     Response schema for generated research project.
-    
+
     Contains the complete enhanced research project with AI analysis and papers.
     """
+
     # Metadata
     request_id: str = Field(description="Unique identifier for this request")
     generated_at: datetime = Field(description="Timestamp when project was generated")
     enhanced: bool = Field(description="Whether LLM enhancement was applied")
     llm_model_used: Optional[str] = Field(description="LLM model used for enhancement")
-    
+
     # Core project data
     topic: str
     research_question: str
     research_type: str
     academic_level: str
     discipline: str
-    
+
     # AI-generated content
     ai_topic_analysis: Optional[str] = None
     ai_research_questions: Optional[List[str]] = None
     ai_methodology_recommendations: Optional[str] = None
     ai_search_strategy: Optional[str] = None
     ai_literature_synthesis: Optional[str] = None
-    
+
     # Discovered papers
     discovered_papers: Optional[List[PaperSchema]] = None
     paper_statistics: Optional[PaperStatistics] = None
     search_sources_used: Optional[List[str]] = None
-    
+
     # Project structure
     base_project: Dict[str, Any]
     subject_analysis: Dict[str, Any]
     validation_report: ValidationReportSchema
-    
+
     # Export
     markdown_output: Optional[str] = Field(
-        default=None,
-        description="Full project exported as markdown"
+        default=None, description="Full project exported as markdown"
     )
 
 
 class ProjectStatusResponse(BaseModel):
     """Response for async project status check"""
+
     request_id: str
     status: str = Field(description="pending, processing, completed, failed")
     progress: Optional[float] = Field(default=None, ge=0.0, le=1.0)
@@ -253,6 +245,7 @@ class ProjectStatusResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Health check response"""
+
     status: str
     version: str
     llm_available: bool
@@ -263,6 +256,7 @@ class HealthResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     """Standard error response"""
+
     detail: str
     error_code: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.now)
@@ -270,6 +264,7 @@ class ErrorResponse(BaseModel):
 
 class LLMConfigRequest(BaseModel):
     """Request to configure LLM settings"""
+
     provider: LLMProvider = LLMProvider.OLLAMA
     model: str = "llama3.1:8b"
     base_url: str = "http://localhost:11434"

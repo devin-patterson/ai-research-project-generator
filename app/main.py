@@ -12,8 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
 
-from app import __version__
-from app.api.routes import router, _research_service
+from app.api.routes import router
 from app.core.config import get_settings
 from app.core.exceptions import ResearchGenerationError
 from app.services.research_service import ResearchService
@@ -23,38 +22,39 @@ from app.services.research_service import ResearchService
 async def lifespan(app: FastAPI):
     """
     Application lifespan manager.
-    
+
     Handles startup and shutdown events for resource management.
     """
     settings = get_settings()
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
-    
+
     # Startup: Initialize resources
     global _research_service
     from app.api import routes
+
     routes._research_service = ResearchService(settings)
     await routes._research_service.startup()
-    
+
     logger.info("Application startup complete")
-    
+
     yield
-    
+
     # Shutdown: Cleanup resources
     logger.info("Shutting down application...")
     if routes._research_service:
         await routes._research_service.shutdown()
-    
+
     logger.info("Application shutdown complete")
 
 
 def create_app() -> FastAPI:
     """
     Application factory.
-    
+
     Creates and configures the FastAPI application instance.
     """
     settings = get_settings()
-    
+
     app = FastAPI(
         title=settings.app_name,
         description="""
@@ -90,7 +90,7 @@ Generate comprehensive, AI-enhanced research projects with:
         redoc_url="/redoc",
         openapi_url="/openapi.json",
     )
-    
+
     # CORS middleware
     app.add_middleware(
         CORSMiddleware,
@@ -99,7 +99,7 @@ Generate comprehensive, AI-enhanced research projects with:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Exception handlers
     @app.exception_handler(ResearchGenerationError)
     async def research_error_handler(request: Request, exc: ResearchGenerationError):
@@ -111,7 +111,7 @@ Generate comprehensive, AI-enhanced research projects with:
                 "timestamp": datetime.now().isoformat(),
             },
         )
-    
+
     @app.exception_handler(Exception)
     async def general_exception_handler(request: Request, exc: Exception):
         logger.exception(f"Unhandled exception: {exc}")
@@ -122,10 +122,10 @@ Generate comprehensive, AI-enhanced research projects with:
                 "timestamp": datetime.now().isoformat(),
             },
         )
-    
+
     # Include routers
     app.include_router(router, prefix=settings.api_prefix, tags=["Research"])
-    
+
     # Root endpoint
     @app.get("/", tags=["Root"])
     async def root():
@@ -135,7 +135,7 @@ Generate comprehensive, AI-enhanced research projects with:
             "docs": "/docs",
             "health": f"{settings.api_prefix}/health",
         }
-    
+
     return app
 
 
@@ -145,7 +145,7 @@ app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     settings = get_settings()
     uvicorn.run(
         "app.main:app",

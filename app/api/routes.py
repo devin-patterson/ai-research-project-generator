@@ -6,7 +6,7 @@ Defines all REST API endpoints with proper request/response schemas.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
 
 from app.core.config import Settings, get_settings
@@ -27,7 +27,7 @@ _research_service: ResearchService | None = None
 
 
 async def get_research_service(
-    settings: Annotated[Settings, Depends(get_settings)]
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> ResearchService:
     """Dependency injection for research service"""
     global _research_service
@@ -49,7 +49,7 @@ async def health_check(
 ) -> HealthResponse:
     """
     Health check endpoint.
-    
+
     Returns the status of the API and its dependencies including:
     - LLM availability
     - Academic search availability
@@ -83,7 +83,7 @@ async def generate_research_project(
 ) -> ResearchResponse:
     """
     Generate a comprehensive research project.
-    
+
     This endpoint accepts a research topic and configuration, then generates:
     - AI-powered topic analysis
     - Research questions
@@ -92,7 +92,7 @@ async def generate_research_project(
     - Relevant academic papers
     - Literature synthesis
     - Project validation report
-    
+
     **Example Request:**
     ```json
     {
@@ -112,24 +112,21 @@ async def generate_research_project(
         response = await service.generate_project(request)
         logger.info(f"Research project generated: {response.request_id}")
         return response
-        
+
     except LLMConnectionError as e:
         logger.error(f"LLM connection error: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"LLM service unavailable: {str(e)}"
+            detail=f"LLM service unavailable: {str(e)}",
         )
     except ResearchGenerationError as e:
         logger.error(f"Research generation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An unexpected error occurred: {str(e)}"
+            detail=f"An unexpected error occurred: {str(e)}",
         )
 
 
@@ -141,7 +138,7 @@ async def generate_research_project(
 async def list_models() -> dict:
     """
     List recommended LLM models for research generation.
-    
+
     Returns models categorized by:
     - Best quality (24GB+ VRAM)
     - Balanced (8-16GB VRAM)
@@ -178,14 +175,50 @@ async def list_research_types() -> dict:
     """List all supported research types with descriptions"""
     return {
         "research_types": [
-            {"value": "systematic_review", "name": "Systematic Review", "description": "PRISMA-compliant systematic literature review"},
-            {"value": "scoping_review", "name": "Scoping Review", "description": "Broad literature mapping and gap identification"},
-            {"value": "meta_analysis", "name": "Meta-Analysis", "description": "Statistical synthesis of multiple studies"},
-            {"value": "qualitative_study", "name": "Qualitative Study", "description": "In-depth exploration of phenomena"},
-            {"value": "quantitative_study", "name": "Quantitative Study", "description": "Statistical analysis of measurable data"},
-            {"value": "mixed_methods", "name": "Mixed Methods", "description": "Combined qualitative and quantitative approaches"},
-            {"value": "case_study", "name": "Case Study", "description": "In-depth analysis of specific cases"},
-            {"value": "experimental", "name": "Experimental", "description": "Controlled experimental research"},
-            {"value": "literature_review", "name": "Literature Review", "description": "Narrative review of existing literature"},
+            {
+                "value": "systematic_review",
+                "name": "Systematic Review",
+                "description": "PRISMA-compliant systematic literature review",
+            },
+            {
+                "value": "scoping_review",
+                "name": "Scoping Review",
+                "description": "Broad literature mapping and gap identification",
+            },
+            {
+                "value": "meta_analysis",
+                "name": "Meta-Analysis",
+                "description": "Statistical synthesis of multiple studies",
+            },
+            {
+                "value": "qualitative_study",
+                "name": "Qualitative Study",
+                "description": "In-depth exploration of phenomena",
+            },
+            {
+                "value": "quantitative_study",
+                "name": "Quantitative Study",
+                "description": "Statistical analysis of measurable data",
+            },
+            {
+                "value": "mixed_methods",
+                "name": "Mixed Methods",
+                "description": "Combined qualitative and quantitative approaches",
+            },
+            {
+                "value": "case_study",
+                "name": "Case Study",
+                "description": "In-depth analysis of specific cases",
+            },
+            {
+                "value": "experimental",
+                "name": "Experimental",
+                "description": "Controlled experimental research",
+            },
+            {
+                "value": "literature_review",
+                "name": "Literature Review",
+                "description": "Narrative review of existing literature",
+            },
         ]
     }

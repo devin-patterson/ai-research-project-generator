@@ -9,8 +9,7 @@ This module tests the graph-based workflow orchestration including:
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Any
+from unittest.mock import AsyncMock
 
 from app.workflows.research_workflow import (
     ResearchWorkflow,
@@ -22,6 +21,7 @@ from app.workflows.research_workflow import (
 # =============================================================================
 # Test Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def mock_llm_client():
@@ -35,20 +35,22 @@ def mock_llm_client():
 def mock_search_client():
     """Create a mock academic search client."""
     client = AsyncMock()
-    client.search = AsyncMock(return_value=[
-        {
-            "title": "Test Paper 1",
-            "abstract": "Abstract for test paper 1",
-            "year": 2024,
-            "doi": "10.1234/test1",
-        },
-        {
-            "title": "Test Paper 2",
-            "abstract": "Abstract for test paper 2",
-            "year": 2023,
-            "doi": "10.1234/test2",
-        },
-    ])
+    client.search = AsyncMock(
+        return_value=[
+            {
+                "title": "Test Paper 1",
+                "abstract": "Abstract for test paper 1",
+                "year": 2024,
+                "doi": "10.1234/test1",
+            },
+            {
+                "title": "Test Paper 2",
+                "abstract": "Abstract for test paper 2",
+                "year": 2023,
+                "doi": "10.1234/test2",
+            },
+        ]
+    )
     return client
 
 
@@ -85,13 +87,14 @@ def sample_initial_state() -> ResearchState:
 # Workflow Creation Tests
 # =============================================================================
 
+
 class TestWorkflowCreation:
     """Tests for workflow creation and configuration."""
 
     def test_create_workflow_with_defaults(self):
         """Test creating a workflow with default configuration."""
         workflow = create_research_graph()
-        
+
         assert workflow is not None
         assert isinstance(workflow, ResearchWorkflow)
         assert workflow.checkpointer is not None
@@ -102,7 +105,7 @@ class TestWorkflowCreation:
             llm_client=mock_llm_client,
             search_client=mock_search_client,
         )
-        
+
         assert workflow.llm_client == mock_llm_client
         assert workflow.search_client == mock_search_client
 
@@ -117,6 +120,7 @@ class TestWorkflowCreation:
 # Individual Node Tests
 # =============================================================================
 
+
 class TestWorkflowNodes:
     """Tests for individual workflow nodes."""
 
@@ -124,7 +128,7 @@ class TestWorkflowNodes:
     async def test_analyze_topic_node(self, workflow, sample_initial_state):
         """Test the topic analysis node."""
         result = await workflow._analyze_topic(sample_initial_state)
-        
+
         assert "topic_analysis" in result
         assert "key_concepts" in result
         assert result["current_step"] == "analyze_topic"
@@ -138,9 +142,9 @@ class TestWorkflowNodes:
             **sample_initial_state,
             "key_concepts": ["artificial intelligence", "education", "learning"],
         }
-        
+
         result = await workflow._generate_queries(state)
-        
+
         assert "search_queries" in result
         assert result["current_step"] == "generate_queries"
         assert len(result["search_queries"]) > 0
@@ -152,9 +156,9 @@ class TestWorkflowNodes:
             **sample_initial_state,
             "search_queries": ["AI in education", "machine learning education"],
         }
-        
+
         result = await workflow._search_papers(state)
-        
+
         assert "papers" in result
         assert result["current_step"] == "search_papers"
         # Mock client returns 2 papers
@@ -164,19 +168,21 @@ class TestWorkflowNodes:
     async def test_search_papers_deduplicates(self, workflow, sample_initial_state):
         """Test that paper search deduplicates results."""
         # Configure mock to return duplicate papers
-        workflow.search_client.search = AsyncMock(return_value=[
-            {"title": "Same Paper", "doi": "10.1234/same", "year": 2024},
-            {"title": "Same Paper", "doi": "10.1234/same", "year": 2024},
-            {"title": "Different Paper", "doi": "10.1234/diff", "year": 2023},
-        ])
-        
+        workflow.search_client.search = AsyncMock(
+            return_value=[
+                {"title": "Same Paper", "doi": "10.1234/same", "year": 2024},
+                {"title": "Same Paper", "doi": "10.1234/same", "year": 2024},
+                {"title": "Different Paper", "doi": "10.1234/diff", "year": 2023},
+            ]
+        )
+
         state = {
             **sample_initial_state,
             "search_queries": ["test query"],
         }
-        
+
         result = await workflow._search_papers(state)
-        
+
         # Should have deduplicated to 2 unique papers
         assert len(result["papers"]) == 2
 
@@ -190,9 +196,9 @@ class TestWorkflowNodes:
                 {"title": "Paper 2", "abstract": "Abstract 2", "year": 2023},
             ],
         }
-        
+
         result = await workflow._analyze_papers(state)
-        
+
         assert "research_context" in result
         assert result["current_step"] == "analyze_papers"
         assert result["research_context"]["papers_analyzed"] == 2
@@ -204,9 +210,9 @@ class TestWorkflowNodes:
             **sample_initial_state,
             "papers": [],
         }
-        
+
         result = await workflow._analyze_papers(state)
-        
+
         assert result["research_context"]["papers_analyzed"] == 0
         assert "No papers found" in result["research_context"]["synthesis"]
 
@@ -214,7 +220,7 @@ class TestWorkflowNodes:
     async def test_recommend_methodology_node(self, workflow, sample_initial_state):
         """Test methodology recommendation node."""
         result = await workflow._recommend_methodology(sample_initial_state)
-        
+
         assert "methodology_recommendations" in result
         assert "subject_analysis" in result
         assert result["current_step"] == "recommend_methodology"
@@ -229,7 +235,7 @@ class TestWorkflowNodes:
             "case_study",
             "empirical_study",
         ]
-        
+
         results = []
         for rt in research_types:
             state = {
@@ -239,7 +245,7 @@ class TestWorkflowNodes:
             }
             result = await workflow._recommend_methodology(state)
             results.append(result["methodology_recommendations"])
-        
+
         # Different research types should have different recommendations
         # (at least some should differ)
         unique_recommendations = set(tuple(r) for r in results)
@@ -255,9 +261,9 @@ class TestWorkflowNodes:
             "methodology_recommendations": ["Method 1", "Method 2"],
             "search_papers": True,
         }
-        
+
         result = await workflow._validate_output(state)
-        
+
         assert result["validation_report"]["passed"] is True
         assert result["quality_score"] == 100.0
 
@@ -271,9 +277,9 @@ class TestWorkflowNodes:
             "methodology_recommendations": None,  # Missing
             "search_papers": True,
         }
-        
+
         result = await workflow._validate_output(state)
-        
+
         assert result["validation_report"]["passed"] is False
         assert result["quality_score"] < 100.0
         assert len(result["validation_report"]["issues"]) > 0
@@ -292,9 +298,9 @@ class TestWorkflowNodes:
             "validation_report": {"passed": True},
             "quality_score": 85.0,
         }
-        
+
         result = await workflow._generate_report(state)
-        
+
         assert "final_output" in result
         assert result["current_step"] == "generate_report"
         assert result["final_output"]["topic"] == sample_initial_state["topic"]
@@ -304,6 +310,7 @@ class TestWorkflowNodes:
 # =============================================================================
 # Conditional Routing Tests
 # =============================================================================
+
 
 class TestConditionalRouting:
     """Tests for conditional routing in the workflow."""
@@ -331,6 +338,7 @@ class TestConditionalRouting:
 # Full Workflow Execution Tests
 # =============================================================================
 
+
 class TestFullWorkflowExecution:
     """Tests for complete workflow execution."""
 
@@ -348,7 +356,7 @@ class TestFullWorkflowExecution:
             use_llm=False,
             search_papers=True,
         )
-        
+
         # Verify final output structure
         assert "topic" in result
         assert "research_question" in result
@@ -367,7 +375,7 @@ class TestFullWorkflowExecution:
             use_llm=False,
             search_papers=False,  # Skip paper search
         )
-        
+
         # Should still complete but with no papers
         assert "topic" in result
         assert "methodology_recommendations" in result
@@ -376,10 +384,8 @@ class TestFullWorkflowExecution:
     async def test_workflow_handles_search_errors(self, workflow, sample_initial_state):
         """Test workflow handles search errors gracefully."""
         # Configure search to fail
-        workflow.search_client.search = AsyncMock(
-            side_effect=Exception("Search API unavailable")
-        )
-        
+        workflow.search_client.search = AsyncMock(side_effect=Exception("Search API unavailable"))
+
         result = await workflow.run(
             topic=sample_initial_state["topic"],
             research_question=sample_initial_state["research_question"],
@@ -387,7 +393,7 @@ class TestFullWorkflowExecution:
             use_llm=False,
             search_papers=True,
         )
-        
+
         # Workflow should complete despite search errors
         assert "topic" in result
         # Errors should be recorded
@@ -397,6 +403,7 @@ class TestFullWorkflowExecution:
 # =============================================================================
 # State Management Tests
 # =============================================================================
+
 
 class TestStateManagement:
     """Tests for workflow state management."""
@@ -411,10 +418,8 @@ class TestStateManagement:
     async def test_state_accumulates_errors(self, workflow):
         """Test that errors accumulate in state."""
         # Configure search to fail multiple times
-        workflow.search_client.search = AsyncMock(
-            side_effect=Exception("Search failed")
-        )
-        
+        workflow.search_client.search = AsyncMock(side_effect=Exception("Search failed"))
+
         state = {
             "topic": "Test",
             "research_question": "Test question",
@@ -422,9 +427,9 @@ class TestStateManagement:
             "paper_limit": 10,
             "errors": [],
         }
-        
+
         result = await workflow._search_papers(state)
-        
+
         # Errors should be accumulated
         assert len(result.get("errors", [])) > 0
 
@@ -432,6 +437,7 @@ class TestStateManagement:
 # =============================================================================
 # Rule-Based Fallback Tests
 # =============================================================================
+
 
 class TestRuleBasedFallbacks:
     """Tests for rule-based analysis fallbacks."""
@@ -442,7 +448,7 @@ class TestRuleBasedFallbacks:
             topic="artificial intelligence machine learning",
             research_question="How does AI work?",
         )
-        
+
         assert "topic" in result
         assert "key_concepts" in result
         assert len(result["key_concepts"]) > 0
@@ -456,15 +462,15 @@ class TestRuleBasedFallbacks:
             {"title": "Paper 2", "year": 2024},
             {"title": "Paper 3", "year": 2022},
         ]
-        
+
         result = workflow._rule_based_paper_analysis(papers)
-        
+
         assert result["papers_analyzed"] == 3
         assert "2022-2024" in result["year_range"]
 
     def test_rule_based_paper_analysis_empty(self, workflow):
         """Test rule-based paper analysis with no papers."""
         result = workflow._rule_based_paper_analysis([])
-        
+
         assert result["papers_analyzed"] == 0
         assert "N/A" in result["year_range"]

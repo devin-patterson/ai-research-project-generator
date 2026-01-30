@@ -1,4 +1,5 @@
 """Pydantic schemas for request/response validation"""
+
 from app.schemas.research import (
     ResearchRequest,
     ResearchResponse,
@@ -12,7 +13,7 @@ from app.schemas.research import (
 
 __all__ = [
     "ResearchRequest",
-    "ResearchResponse", 
+    "ResearchResponse",
     "ResearchType",
     "AcademicLevel",
     "PaperSchema",

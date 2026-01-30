@@ -1,4 +1,5 @@
 """Core application utilities and configuration"""
+
 from app.core.config import Settings, get_settings
 from app.core.exceptions import (
     ResearchGenerationError,

@@ -10,22 +10,22 @@ from typing import Optional, Any
 
 import httpx
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, RunContext
-
-from loguru import logger
+from pydantic_ai import Agent
 
 
 # =============================================================================
 # Dependencies
 # =============================================================================
 
+
 @dataclass
 class ResearchDependencies:
     """Dependencies injected into research agents.
-    
+
     This dataclass provides type-safe access to external services
     and configuration needed by the agents.
     """
+
     http_client: httpx.AsyncClient
     llm_base_url: str = "http://localhost:11434"
     llm_model: str = "llama3.1:8b"
@@ -36,113 +36,72 @@ class ResearchDependencies:
 # Output Schemas (Pydantic Models)
 # =============================================================================
 
+
 class TopicAnalysis(BaseModel):
     """Structured output for topic analysis."""
-    
+
     topic: str = Field(description="The research topic being analyzed")
     key_concepts: list[str] = Field(
-        description="Key concepts and terms identified in the topic",
-        min_length=1,
-        max_length=20
+        description="Key concepts and terms identified in the topic", min_length=1, max_length=20
     )
-    research_scope: str = Field(
-        description="The scope of the research (narrow, moderate, broad)"
-    )
-    complexity_level: str = Field(
-        description="Complexity level (basic, intermediate, advanced)"
-    )
+    research_scope: str = Field(description="The scope of the research (narrow, moderate, broad)")
+    complexity_level: str = Field(description="Complexity level (basic, intermediate, advanced)")
     suggested_subtopics: list[str] = Field(
-        description="Suggested subtopics for deeper investigation",
-        default_factory=list
+        description="Suggested subtopics for deeper investigation", default_factory=list
     )
     potential_challenges: list[str] = Field(
-        description="Potential challenges in researching this topic",
-        default_factory=list
+        description="Potential challenges in researching this topic", default_factory=list
     )
     interdisciplinary_connections: list[str] = Field(
-        description="Related disciplines that may inform this research",
-        default_factory=list
+        description="Related disciplines that may inform this research", default_factory=list
     )
 
 
 class PaperSynthesis(BaseModel):
     """Structured output for paper synthesis."""
-    
+
     papers_analyzed: int = Field(description="Number of papers analyzed", ge=0)
-    main_themes: list[str] = Field(
-        description="Main themes identified across papers"
-    )
-    research_gaps: list[str] = Field(
-        description="Gaps in the current research identified"
-    )
+    main_themes: list[str] = Field(description="Main themes identified across papers")
+    research_gaps: list[str] = Field(description="Gaps in the current research identified")
     methodological_trends: list[str] = Field(
         description="Common methodological approaches observed"
     )
-    key_findings: list[str] = Field(
-        description="Key findings synthesized from the literature"
-    )
-    synthesis_narrative: str = Field(
-        description="Narrative synthesis of the literature"
-    )
+    key_findings: list[str] = Field(description="Key findings synthesized from the literature")
+    synthesis_narrative: str = Field(description="Narrative synthesis of the literature")
     recommended_focus_areas: list[str] = Field(
-        description="Recommended areas for further research",
-        default_factory=list
+        description="Recommended areas for further research", default_factory=list
     )
 
 
 class MethodologyRecommendation(BaseModel):
     """Structured output for methodology recommendations."""
-    
-    primary_methodology: str = Field(
-        description="Primary recommended research methodology"
-    )
-    rationale: str = Field(
-        description="Rationale for the methodology recommendation"
-    )
-    data_collection_methods: list[str] = Field(
-        description="Recommended data collection methods"
-    )
-    analysis_techniques: list[str] = Field(
-        description="Recommended analysis techniques"
-    )
-    quality_criteria: list[str] = Field(
-        description="Quality criteria to ensure rigor"
-    )
-    potential_limitations: list[str] = Field(
-        description="Potential limitations of this approach"
-    )
+
+    primary_methodology: str = Field(description="Primary recommended research methodology")
+    rationale: str = Field(description="Rationale for the methodology recommendation")
+    data_collection_methods: list[str] = Field(description="Recommended data collection methods")
+    analysis_techniques: list[str] = Field(description="Recommended analysis techniques")
+    quality_criteria: list[str] = Field(description="Quality criteria to ensure rigor")
+    potential_limitations: list[str] = Field(description="Potential limitations of this approach")
     alternative_approaches: list[str] = Field(
-        description="Alternative methodological approaches",
-        default_factory=list
+        description="Alternative methodological approaches", default_factory=list
     )
 
 
 class ResearchProjectOutput(BaseModel):
     """Complete structured output for a research project."""
-    
+
     title: str = Field(description="Suggested title for the research project")
     abstract: str = Field(description="Brief abstract of the research project")
     topic_analysis: TopicAnalysis
     literature_synthesis: Optional[PaperSynthesis] = None
     methodology: MethodologyRecommendation
-    research_questions: list[str] = Field(
-        description="Refined research questions"
-    )
+    research_questions: list[str] = Field(description="Refined research questions")
     hypotheses: list[str] = Field(
-        description="Research hypotheses if applicable",
-        default_factory=list
+        description="Research hypotheses if applicable", default_factory=list
     )
-    expected_contributions: list[str] = Field(
-        description="Expected contributions to the field"
-    )
-    timeline_estimate: str = Field(
-        description="Estimated timeline for the research"
-    )
-    quality_score: float = Field(
-        description="Quality score of the generated project",
-        ge=0,
-        le=100
-    )
+    expected_contributions: list[str] = Field(description="Expected contributions to the field")
+    timeline_estimate: str = Field(description="Estimated timeline for the research")
+    quality_score: float = Field(description="Quality score of the generated project", ge=0, le=100)
 
 
 # =============================================================================
@@ -170,7 +129,7 @@ Your task is to analyze research topics and extract:
 4. Challenges and interdisciplinary connections
 
 Provide thorough, academically rigorous analysis that helps researchers 
-understand the landscape of their chosen topic."""
+understand the landscape of their chosen topic.""",
     )
 
 
@@ -188,7 +147,7 @@ Your task is to analyze collections of academic papers and:
 3. Note methodological trends
 4. Synthesize key findings into a coherent narrative
 
-Provide rigorous, balanced synthesis that accurately represents the literature."""
+Provide rigorous, balanced synthesis that accurately represents the literature.""",
     )
 
 
@@ -206,7 +165,7 @@ Your task is to recommend appropriate research methodologies based on:
 3. Available resources and constraints
 4. Best practices in the field
 
-Provide practical, well-justified methodology recommendations."""
+Provide practical, well-justified methodology recommendations.""",
     )
 
 
@@ -225,7 +184,7 @@ Your task is to create comprehensive research project plans that include:
 4. Refined research questions and hypotheses
 5. Expected contributions and timeline
 
-Create academically rigorous, feasible research projects."""
+Create academically rigorous, feasible research projects.""",
     )
 
 
@@ -233,26 +192,27 @@ Create academically rigorous, feasible research projects."""
 # Agent Execution Functions
 # =============================================================================
 
+
 async def analyze_topic_with_agent(
     topic: str,
     research_question: str,
     deps: ResearchDependencies,
-    model: str = "ollama:llama3.1:8b"
+    model: str = "ollama:llama3.1:8b",
 ) -> TopicAnalysis:
     """
     Analyze a research topic using the PydanticAI agent.
-    
+
     Args:
         topic: The research topic to analyze
         research_question: The main research question
         deps: Dependencies for the agent
         model: LLM model to use
-        
+
     Returns:
         Structured TopicAnalysis output
     """
     agent = create_topic_analysis_agent(model)
-    
+
     prompt = f"""Analyze the following research topic:
 
 Topic: {topic}
@@ -269,22 +229,22 @@ async def synthesize_papers_with_agent(
     papers: list[dict[str, Any]],
     topic: str,
     deps: ResearchDependencies,
-    model: str = "ollama:llama3.1:8b"
+    model: str = "ollama:llama3.1:8b",
 ) -> PaperSynthesis:
     """
     Synthesize academic papers using the PydanticAI agent.
-    
+
     Args:
         papers: List of paper metadata dictionaries
         topic: The research topic
         deps: Dependencies for the agent
         model: LLM model to use
-        
+
     Returns:
         Structured PaperSynthesis output
     """
     agent = create_paper_synthesis_agent(model)
-    
+
     # Format papers for the prompt
     paper_summaries = []
     for i, paper in enumerate(papers[:20], 1):  # Limit to 20 papers
@@ -292,9 +252,9 @@ async def synthesize_papers_with_agent(
         abstract = paper.get("abstract", "No abstract available")[:500]
         year = paper.get("year", "N/A")
         paper_summaries.append(f"{i}. {title} ({year})\n   {abstract}")
-    
+
     papers_text = "\n\n".join(paper_summaries)
-    
+
     prompt = f"""Synthesize the following academic papers on the topic: {topic}
 
 Papers:
@@ -313,11 +273,11 @@ async def recommend_methodology_with_agent(
     discipline: str,
     academic_level: str,
     deps: ResearchDependencies,
-    model: str = "ollama:llama3.1:8b"
+    model: str = "ollama:llama3.1:8b",
 ) -> MethodologyRecommendation:
     """
     Recommend research methodology using the PydanticAI agent.
-    
+
     Args:
         topic: The research topic
         research_type: Type of research (e.g., systematic_review)
@@ -325,12 +285,12 @@ async def recommend_methodology_with_agent(
         academic_level: Academic level (undergraduate, graduate, doctoral)
         deps: Dependencies for the agent
         model: LLM model to use
-        
+
     Returns:
         Structured MethodologyRecommendation output
     """
     agent = create_methodology_agent(model)
-    
+
     prompt = f"""Recommend a research methodology for the following:
 
 Topic: {topic}
@@ -353,11 +313,11 @@ async def generate_research_project_with_agent(
     academic_level: str,
     papers: Optional[list[dict[str, Any]]] = None,
     deps: Optional[ResearchDependencies] = None,
-    model: str = "ollama:llama3.1:8b"
+    model: str = "ollama:llama3.1:8b",
 ) -> ResearchProjectOutput:
     """
     Generate a complete research project using the PydanticAI agent.
-    
+
     Args:
         topic: The research topic
         research_question: The main research question
@@ -367,7 +327,7 @@ async def generate_research_project_with_agent(
         papers: Optional list of papers to include
         deps: Dependencies for the agent
         model: LLM model to use
-        
+
     Returns:
         Structured ResearchProjectOutput
     """
@@ -375,13 +335,18 @@ async def generate_research_project_with_agent(
         async with httpx.AsyncClient() as client:
             deps = ResearchDependencies(http_client=client)
             return await _run_research_project_agent(
-                topic, research_question, research_type,
-                discipline, academic_level, papers, deps, model
+                topic,
+                research_question,
+                research_type,
+                discipline,
+                academic_level,
+                papers,
+                deps,
+                model,
             )
     else:
         return await _run_research_project_agent(
-            topic, research_question, research_type,
-            discipline, academic_level, papers, deps, model
+            topic, research_question, research_type, discipline, academic_level, papers, deps, model
         )
 
 
@@ -393,19 +358,18 @@ async def _run_research_project_agent(
     academic_level: str,
     papers: Optional[list[dict[str, Any]]],
     deps: ResearchDependencies,
-    model: str = "ollama:llama3.1:8b"
+    model: str = "ollama:llama3.1:8b",
 ) -> ResearchProjectOutput:
     """Internal function to run the research project agent."""
     agent = create_research_project_agent(model)
-    
+
     papers_section = ""
     if papers:
-        paper_list = "\n".join([
-            f"- {p.get('title', 'Unknown')} ({p.get('year', 'N/A')})"
-            for p in papers[:10]
-        ])
+        paper_list = "\n".join(
+            [f"- {p.get('title', 'Unknown')} ({p.get('year', 'N/A')})" for p in papers[:10]]
+        )
         papers_section = f"\n\nRelevant Papers Found:\n{paper_list}"
-    
+
     prompt = f"""Create a comprehensive research project plan:
 
 Topic: {topic}

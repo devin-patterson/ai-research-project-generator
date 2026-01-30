@@ -9,11 +9,9 @@ This module provides comprehensive testing patterns for LLM-based functionality:
 """
 
 import pytest
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Any
 
-from pydantic import BaseModel
 
 from app.workflows.agents import (
     TopicAnalysis,
@@ -24,15 +22,13 @@ from app.workflows.agents import (
     analyze_topic_with_agent,
     synthesize_papers_with_agent,
     recommend_methodology_with_agent,
-    create_topic_analysis_agent,
-    create_paper_synthesis_agent,
-    create_methodology_agent,
 )
 
 
 # =============================================================================
 # Test Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def mock_http_client():
@@ -185,26 +181,27 @@ def sample_papers() -> list[dict[str, Any]]:
 # Mock-Based Testing (Deterministic Unit Tests)
 # =============================================================================
 
+
 class TestMockedLLMResponses:
     """Tests using mocked LLM responses for deterministic behavior."""
 
     @pytest.mark.asyncio
-    async def test_topic_analysis_with_mocked_agent(
-        self, research_deps, sample_topic_analysis
-    ):
+    async def test_topic_analysis_with_mocked_agent(self, research_deps, sample_topic_analysis):
         """Test topic analysis with a mocked agent response."""
-        with patch("app.workflows.agents.topic_analysis_agent") as mock_agent:
+        with patch("app.workflows.agents.create_topic_analysis_agent") as mock_factory:
             # Configure mock to return sample data
+            mock_agent = MagicMock()
             mock_result = MagicMock()
             mock_result.data = sample_topic_analysis
             mock_agent.run = AsyncMock(return_value=mock_result)
-            
+            mock_factory.return_value = mock_agent
+
             result = await analyze_topic_with_agent(
                 topic="Impact of artificial intelligence on education",
                 research_question="How does AI affect learning outcomes?",
                 deps=research_deps,
             )
-            
+
             assert result.topic == "Impact of artificial intelligence on education"
             assert len(result.key_concepts) >= 1
             assert result.research_scope in ["narrow", "moderate", "broad"]
@@ -215,32 +212,34 @@ class TestMockedLLMResponses:
         self, research_deps, sample_papers, sample_paper_synthesis
     ):
         """Test paper synthesis with a mocked agent response."""
-        with patch("app.workflows.agents.paper_synthesis_agent") as mock_agent:
+        with patch("app.workflows.agents.create_paper_synthesis_agent") as mock_factory:
+            mock_agent = MagicMock()
             mock_result = MagicMock()
             mock_result.data = sample_paper_synthesis
             mock_agent.run = AsyncMock(return_value=mock_result)
-            
+            mock_factory.return_value = mock_agent
+
             result = await synthesize_papers_with_agent(
                 papers=sample_papers,
                 topic="AI in Education",
                 deps=research_deps,
             )
-            
+
             assert result.papers_analyzed > 0
             assert len(result.main_themes) > 0
             assert len(result.research_gaps) > 0
             assert result.synthesis_narrative != ""
 
     @pytest.mark.asyncio
-    async def test_methodology_with_mocked_agent(
-        self, research_deps, sample_methodology
-    ):
+    async def test_methodology_with_mocked_agent(self, research_deps, sample_methodology):
         """Test methodology recommendation with a mocked agent response."""
-        with patch("app.workflows.agents.methodology_agent") as mock_agent:
+        with patch("app.workflows.agents.create_methodology_agent") as mock_factory:
+            mock_agent = MagicMock()
             mock_result = MagicMock()
             mock_result.data = sample_methodology
             mock_agent.run = AsyncMock(return_value=mock_result)
-            
+            mock_factory.return_value = mock_agent
+
             result = await recommend_methodology_with_agent(
                 topic="AI in Education",
                 research_type="systematic_review",
@@ -248,7 +247,7 @@ class TestMockedLLMResponses:
                 academic_level="graduate",
                 deps=research_deps,
             )
-            
+
             assert result.primary_methodology != ""
             assert result.rationale != ""
             assert len(result.data_collection_methods) > 0
@@ -258,6 +257,7 @@ class TestMockedLLMResponses:
 # =============================================================================
 # Schema Validation Tests
 # =============================================================================
+
 
 class TestOutputSchemaValidation:
     """Tests to ensure LLM outputs conform to expected schemas."""
@@ -343,7 +343,7 @@ class TestOutputSchemaValidation:
             quality_criteria=["criteria"],
             potential_limitations=["limitation"],
         )
-        
+
         # Valid quality score
         output = ResearchProjectOutput(
             title="Test Project",
@@ -356,7 +356,7 @@ class TestOutputSchemaValidation:
             quality_score=85.5,
         )
         assert output.quality_score == 85.5
-        
+
         # Invalid quality score (too high)
         with pytest.raises(ValueError):
             ResearchProjectOutput(
@@ -375,10 +375,11 @@ class TestOutputSchemaValidation:
 # Snapshot Testing for Regression Detection
 # =============================================================================
 
+
 class TestLLMResponseSnapshots:
     """
     Snapshot tests to detect regressions in LLM output structure.
-    
+
     These tests compare current outputs against saved snapshots to detect
     unexpected changes in response format or content.
     """
@@ -386,7 +387,7 @@ class TestLLMResponseSnapshots:
     def test_topic_analysis_structure_snapshot(self, sample_topic_analysis):
         """Verify topic analysis output structure matches expected format."""
         output_dict = sample_topic_analysis.model_dump()
-        
+
         # Verify all expected keys are present
         expected_keys = {
             "topic",
@@ -398,7 +399,7 @@ class TestLLMResponseSnapshots:
             "interdisciplinary_connections",
         }
         assert set(output_dict.keys()) == expected_keys
-        
+
         # Verify types
         assert isinstance(output_dict["topic"], str)
         assert isinstance(output_dict["key_concepts"], list)
@@ -407,7 +408,7 @@ class TestLLMResponseSnapshots:
     def test_paper_synthesis_structure_snapshot(self, sample_paper_synthesis):
         """Verify paper synthesis output structure matches expected format."""
         output_dict = sample_paper_synthesis.model_dump()
-        
+
         expected_keys = {
             "papers_analyzed",
             "main_themes",
@@ -418,7 +419,7 @@ class TestLLMResponseSnapshots:
             "recommended_focus_areas",
         }
         assert set(output_dict.keys()) == expected_keys
-        
+
         # Verify types
         assert isinstance(output_dict["papers_analyzed"], int)
         assert isinstance(output_dict["main_themes"], list)
@@ -429,10 +430,11 @@ class TestLLMResponseSnapshots:
 # Evaluation-Based Testing (Quality Assurance)
 # =============================================================================
 
+
 class TestLLMOutputQuality:
     """
     Quality evaluation tests for LLM outputs.
-    
+
     These tests check semantic quality rather than exact matches,
     useful for ensuring LLM outputs meet minimum quality standards.
     """
@@ -441,17 +443,17 @@ class TestLLMOutputQuality:
         """Verify topic analysis contains meaningful key concepts."""
         # Key concepts should not be empty strings
         assert all(len(concept) > 0 for concept in sample_topic_analysis.key_concepts)
-        
+
         # Key concepts should be reasonably sized (not too short)
         assert all(len(concept) >= 2 for concept in sample_topic_analysis.key_concepts)
 
     def test_paper_synthesis_narrative_quality(self, sample_paper_synthesis):
         """Verify synthesis narrative meets minimum quality standards."""
         narrative = sample_paper_synthesis.synthesis_narrative
-        
+
         # Narrative should be substantial (at least 20 characters)
         assert len(narrative) >= 20
-        
+
         # Narrative should contain actual words (not just punctuation)
         words = narrative.split()
         assert len(words) >= 3
@@ -460,10 +462,10 @@ class TestLLMOutputQuality:
         """Verify methodology recommendation is complete."""
         # Should have at least one data collection method
         assert len(sample_methodology.data_collection_methods) >= 1
-        
+
         # Should have at least one analysis technique
         assert len(sample_methodology.analysis_techniques) >= 1
-        
+
         # Rationale should be substantial
         assert len(sample_methodology.rationale) >= 10
 
@@ -478,11 +480,12 @@ class TestLLMOutputQuality:
 # Integration Tests (Optional - Requires Running LLM)
 # =============================================================================
 
+
 @pytest.mark.skip(reason="Requires running Ollama LLM server")
 class TestLLMIntegration:
     """
     Integration tests that run against a real LLM.
-    
+
     These tests are skipped by default and should only be run
     when an LLM server is available.
     """
@@ -491,16 +494,16 @@ class TestLLMIntegration:
     async def test_real_topic_analysis(self):
         """Test topic analysis with real LLM."""
         import httpx
-        
+
         async with httpx.AsyncClient() as client:
             deps = ResearchDependencies(http_client=client)
-            
+
             result = await analyze_topic_with_agent(
                 topic="Impact of artificial intelligence on education",
                 research_question="How does AI affect learning outcomes?",
                 deps=deps,
             )
-            
+
             # Verify we got a valid response
             assert result.topic != ""
             assert len(result.key_concepts) >= 1
@@ -509,10 +512,10 @@ class TestLLMIntegration:
     async def test_real_methodology_recommendation(self):
         """Test methodology recommendation with real LLM."""
         import httpx
-        
+
         async with httpx.AsyncClient() as client:
             deps = ResearchDependencies(http_client=client)
-            
+
             result = await recommend_methodology_with_agent(
                 topic="AI in Education",
                 research_type="systematic_review",
@@ -520,7 +523,7 @@ class TestLLMIntegration:
                 academic_level="graduate",
                 deps=deps,
             )
-            
+
             assert result.primary_methodology != ""
             assert len(result.data_collection_methods) >= 1
 
@@ -529,16 +532,20 @@ class TestLLMIntegration:
 # Error Handling Tests
 # =============================================================================
 
+
 class TestLLMErrorHandling:
     """Tests for error handling in LLM interactions."""
 
     @pytest.mark.asyncio
     async def test_handles_llm_timeout(self, research_deps):
         """Test graceful handling of LLM timeout."""
-        with patch("app.workflows.agents.topic_analysis_agent") as mock_agent:
+        with patch("app.workflows.agents.create_topic_analysis_agent") as mock_factory:
             import asyncio
+
+            mock_agent = MagicMock()
             mock_agent.run = AsyncMock(side_effect=asyncio.TimeoutError())
-            
+            mock_factory.return_value = mock_agent
+
             with pytest.raises(asyncio.TimeoutError):
                 await analyze_topic_with_agent(
                     topic="Test topic",
@@ -549,9 +556,11 @@ class TestLLMErrorHandling:
     @pytest.mark.asyncio
     async def test_handles_llm_connection_error(self, research_deps):
         """Test graceful handling of LLM connection errors."""
-        with patch("app.workflows.agents.topic_analysis_agent") as mock_agent:
+        with patch("app.workflows.agents.create_topic_analysis_agent") as mock_factory:
+            mock_agent = MagicMock()
             mock_agent.run = AsyncMock(side_effect=ConnectionError("LLM unavailable"))
-            
+            mock_factory.return_value = mock_agent
+
             with pytest.raises(ConnectionError):
                 await analyze_topic_with_agent(
                     topic="Test topic",
@@ -562,19 +571,21 @@ class TestLLMErrorHandling:
     @pytest.mark.asyncio
     async def test_handles_invalid_llm_response(self, research_deps):
         """Test handling of invalid LLM response that fails validation."""
-        with patch("app.workflows.agents.topic_analysis_agent") as mock_agent:
+        with patch("app.workflows.agents.create_topic_analysis_agent") as mock_factory:
             # Return invalid data that won't pass Pydantic validation
+            mock_agent = MagicMock()
             mock_result = MagicMock()
             mock_result.data = None  # Invalid - should be TopicAnalysis
+            mock_factory.return_value = mock_agent
             mock_agent.run = AsyncMock(return_value=mock_result)
-            
+
             # The agent should handle this gracefully or raise appropriate error
             result = await analyze_topic_with_agent(
                 topic="Test topic",
                 research_question="Test question",
                 deps=research_deps,
             )
-            
+
             # With PydanticAI, invalid responses trigger retries
             # If all retries fail, we should get None or an error
             assert result is None or isinstance(result, TopicAnalysis)

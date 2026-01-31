@@ -5,7 +5,7 @@ Tests for retry utilities.
 import pytest
 from unittest.mock import Mock, AsyncMock
 
-from app.core.retry import (
+from src.ai_research_generator.core.retry import (
     RetryConfig,
     retry_sync,
     retry_async,

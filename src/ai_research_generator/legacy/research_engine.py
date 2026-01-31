@@ -21,16 +21,16 @@ except ImportError:
 
     logger = logging.getLogger(__name__)
 
-from llm_provider import LLMConfig, LLMProvider, ResearchLLMAssistant, RECOMMENDED_MODELS
-from academic_search import UnifiedAcademicSearch, Paper
-from ai_research_project_generator import (
+from .llm_provider import LLMConfig, LLMProvider, ResearchLLMAssistant, RECOMMENDED_MODELS
+from .academic_search import UnifiedAcademicSearch, Paper
+from .ai_research_project_generator import (
     AIResearchProjectGenerator,
     ResearchContext,
     ResearchType,
     AcademicLevel,
 )
-from subject_analyzer import SubjectAnalyzer
-from validation_engine import ValidationEngine
+from .subject_analyzer import SubjectAnalyzer
+from .validation_engine import ValidationEngine
 
 
 @dataclass

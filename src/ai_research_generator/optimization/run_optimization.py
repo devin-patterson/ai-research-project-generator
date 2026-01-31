@@ -19,7 +19,7 @@ from datetime import datetime
 import dspy
 from loguru import logger
 
-from app.optimization.dspy_modules import (
+from ..optimization.dspy_modules import (
     TopicAnalyzerModule,
     PaperSynthesizerModule,
     topic_analysis_metric,

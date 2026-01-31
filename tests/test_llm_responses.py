@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Any
 
 
-from app.workflows.agents import (
+from src.ai_research_generator.workflows.agents import (
     TopicAnalysis,
     PaperSynthesis,
     MethodologyRecommendation,
@@ -188,7 +188,7 @@ class TestMockedLLMResponses:
     @pytest.mark.asyncio
     async def test_topic_analysis_with_mocked_agent(self, research_deps, sample_topic_analysis):
         """Test topic analysis with a mocked agent response."""
-        with patch("app.workflows.agents.create_topic_analysis_agent") as mock_factory:
+        with patch("src.ai_research_generator.workflows.agents.create_topic_analysis_agent") as mock_factory:
             # Configure mock to return sample data
             mock_agent = MagicMock()
             mock_result = MagicMock()
@@ -212,7 +212,7 @@ class TestMockedLLMResponses:
         self, research_deps, sample_papers, sample_paper_synthesis
     ):
         """Test paper synthesis with a mocked agent response."""
-        with patch("app.workflows.agents.create_paper_synthesis_agent") as mock_factory:
+        with patch("src.ai_research_generator.workflows.agents.create_paper_synthesis_agent") as mock_factory:
             mock_agent = MagicMock()
             mock_result = MagicMock()
             mock_result.data = sample_paper_synthesis
@@ -233,7 +233,7 @@ class TestMockedLLMResponses:
     @pytest.mark.asyncio
     async def test_methodology_with_mocked_agent(self, research_deps, sample_methodology):
         """Test methodology recommendation with a mocked agent response."""
-        with patch("app.workflows.agents.create_methodology_agent") as mock_factory:
+        with patch("src.ai_research_generator.workflows.agents.create_methodology_agent") as mock_factory:
             mock_agent = MagicMock()
             mock_result = MagicMock()
             mock_result.data = sample_methodology
@@ -539,7 +539,7 @@ class TestLLMErrorHandling:
     @pytest.mark.asyncio
     async def test_handles_llm_timeout(self, research_deps):
         """Test graceful handling of LLM timeout."""
-        with patch("app.workflows.agents.create_topic_analysis_agent") as mock_factory:
+        with patch("src.ai_research_generator.workflows.agents.create_topic_analysis_agent") as mock_factory:
             import asyncio
 
             mock_agent = MagicMock()
@@ -556,7 +556,7 @@ class TestLLMErrorHandling:
     @pytest.mark.asyncio
     async def test_handles_llm_connection_error(self, research_deps):
         """Test graceful handling of LLM connection errors."""
-        with patch("app.workflows.agents.create_topic_analysis_agent") as mock_factory:
+        with patch("src.ai_research_generator.workflows.agents.create_topic_analysis_agent") as mock_factory:
             mock_agent = MagicMock()
             mock_agent.run = AsyncMock(side_effect=ConnectionError("LLM unavailable"))
             mock_factory.return_value = mock_agent
@@ -571,7 +571,7 @@ class TestLLMErrorHandling:
     @pytest.mark.asyncio
     async def test_handles_invalid_llm_response(self, research_deps):
         """Test handling of invalid LLM response that fails validation."""
-        with patch("app.workflows.agents.create_topic_analysis_agent") as mock_factory:
+        with patch("src.ai_research_generator.workflows.agents.create_topic_analysis_agent") as mock_factory:
             # Return invalid data that won't pass Pydantic validation
             mock_agent = MagicMock()
             mock_result = MagicMock()

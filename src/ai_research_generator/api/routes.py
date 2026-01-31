@@ -11,7 +11,7 @@ from loguru import logger
 
 from ..core.config import Settings, get_settings
 from ..core.exceptions import ResearchGenerationError, LLMConnectionError
-from ..models.research import (
+from ..models.schemas.research import (
     ResearchRequest,
     ResearchResponse,
     HealthResponse,

@@ -15,7 +15,7 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import RetryPolicy
 
-from app.core.retry import LLM_RETRY_CONFIG, ACADEMIC_SEARCH_RETRY_CONFIG
+from ..core.retry import LLM_RETRY_CONFIG, ACADEMIC_SEARCH_RETRY_CONFIG
 
 
 class ResearchState(TypedDict, total=False):

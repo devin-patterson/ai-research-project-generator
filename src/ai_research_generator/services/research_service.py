@@ -12,12 +12,12 @@ from typing import Optional, Tuple
 
 from loguru import logger
 
-from app.core.config import Settings
-from app.core.exceptions import (
+from ..core.config import Settings
+from ..core.exceptions import (
     LLMGenerationError,
     ResearchGenerationError,
 )
-from app.schemas.research import (
+from ..models.schemas.research import (
     ResearchRequest,
     ResearchResponse,
     PaperSchema,
@@ -26,19 +26,16 @@ from app.schemas.research import (
 )
 
 # Import existing modules
-import sys
-
-sys.path.insert(0, ".")
-from llm_provider import LLMConfig, LLMProvider, ResearchLLMAssistant
-from academic_search import UnifiedAcademicSearch
-from ai_research_project_generator import (
+from ..legacy.llm_provider import LLMConfig, LLMProvider, ResearchLLMAssistant
+from ..legacy.academic_search import UnifiedAcademicSearch
+from ..legacy.ai_research_project_generator import (
     AIResearchProjectGenerator,
     ResearchContext,
     ResearchType as BaseResearchType,
     AcademicLevel as BaseAcademicLevel,
 )
-from subject_analyzer import SubjectAnalyzer
-from validation_engine import ValidationEngine
+from ..legacy.subject_analyzer import SubjectAnalyzer
+from ..legacy.validation_engine import ValidationEngine
 
 
 class ResearchService:

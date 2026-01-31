@@ -1,6 +1,6 @@
 """Pydantic models for request/response schemas"""
 
-from .research import (
+from .schemas.research import (
     ResearchRequest,
     ResearchResponse,
     HealthResponse,

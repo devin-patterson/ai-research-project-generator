@@ -5,7 +5,7 @@ Tests for Pydantic schemas.
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.research import (
+from src.ai_research_generator.models.schemas.research import (
     ResearchRequest,
     ResearchType,
     AcademicLevel,

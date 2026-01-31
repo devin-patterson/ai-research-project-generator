@@ -11,7 +11,7 @@ This module tests the graph-based workflow orchestration including:
 import pytest
 from unittest.mock import AsyncMock
 
-from app.workflows.research_workflow import (
+from src.ai_research_generator.workflows.research_workflow import (
     ResearchWorkflow,
     ResearchState,
     create_research_graph,

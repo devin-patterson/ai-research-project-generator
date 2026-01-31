@@ -1,6 +1,6 @@
 """Pydantic schemas for request/response validation"""
 
-from app.schemas.research import (
+from .research import (
     ResearchRequest,
     ResearchResponse,
     ResearchType,

@@ -11,12 +11,12 @@ Contract tests verify that:
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.research import (
+from src.ai_research_generator.models.schemas.research import (
     ResearchRequest,
     ResearchType,
     AcademicLevel,
 )
-from app.workflows.agents import (
+from src.ai_research_generator.workflows.agents import (
     TopicAnalysis,
     PaperSynthesis,
     MethodologyRecommendation,
@@ -305,7 +305,7 @@ class TestWorkflowStateContract:
 
     def test_research_state_required_fields(self):
         """Contract: ResearchState must have topic and research_question."""
-        from app.workflows.research_workflow import ResearchState
+        from src.ai_research_generator.workflows.research_workflow import ResearchState
 
         # This is a TypedDict, so we test the expected structure
         state: ResearchState = {

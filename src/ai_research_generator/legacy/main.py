@@ -23,14 +23,14 @@ except ImportError:
 
     logger = logging.getLogger(__name__)
 
-from ai_research_project_generator import (
+from .ai_research_project_generator import (
     AIResearchProjectGenerator,
     ResearchContext,
     ResearchType,
     AcademicLevel,
 )
-from subject_analyzer import SubjectAnalyzer
-from validation_engine import ValidationEngine
+from .subject_analyzer import SubjectAnalyzer
+from .validation_engine import ValidationEngine
 
 
 class IntegratedResearchGenerator:

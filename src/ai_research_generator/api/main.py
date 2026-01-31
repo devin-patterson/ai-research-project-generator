@@ -12,10 +12,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
 
-from app.api.routes import router
-from app.core.config import get_settings
-from app.core.exceptions import ResearchGenerationError
-from app.services.research_service import ResearchService
+from ..api.routes import router
+from ..core.config import get_settings
+from ..core.exceptions import ResearchGenerationError
+from ..services.research_service import ResearchService
 
 
 @asynccontextmanager
@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
 
     # Startup: Initialize resources
     global _research_service
-    from app.api import routes
+    from ..api import routes
 
     routes._research_service = ResearchService(settings)
     await routes._research_service.startup()

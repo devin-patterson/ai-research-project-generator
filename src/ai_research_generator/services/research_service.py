@@ -37,6 +37,15 @@ from ..legacy.ai_research_project_generator import (
 from ..legacy.subject_analyzer import SubjectAnalyzer
 from ..legacy.validation_engine import ValidationEngine
 
+# Import new research tools
+from ..tools.research_tools import (
+    ResearchToolkit,
+    ToolConfig,
+    WebSearchTool,
+    AcademicSearchTool,
+    KnowledgeSynthesisTool,
+)
+
 
 class ResearchService:
     """
@@ -59,6 +68,9 @@ class ResearchService:
         self._project_generator = AIResearchProjectGenerator()
         self._subject_analyzer = SubjectAnalyzer()
         self._validation_engine = ValidationEngine()
+        
+        # Initialize new research toolkit
+        self._research_toolkit: Optional[ResearchToolkit] = None
 
         logger.info("ResearchService initialized")
 
@@ -74,6 +86,9 @@ class ResearchService:
 
         # Initialize academic search
         self._init_academic_search()
+        
+        # Initialize research toolkit
+        self._init_research_toolkit()
 
         logger.info("ResearchService startup complete")
 
@@ -88,6 +103,10 @@ class ResearchService:
         if self._academic_search:
             self._academic_search.close()
             self._academic_search = None
+        
+        if self._research_toolkit:
+            await self._research_toolkit.close()
+            self._research_toolkit = None
 
         logger.info("ResearchService shutdown complete")
 
@@ -113,6 +132,15 @@ class ResearchService:
             crossref_email=self.settings.crossref_email,
         )
         logger.info("Academic search initialized")
+    
+    def _init_research_toolkit(self) -> None:
+        """Initialize research toolkit with all tools"""
+        tool_config = ToolConfig(
+            llm_base_url=self.settings.llm_base_url,
+            llm_model=self.settings.llm_model,
+        )
+        self._research_toolkit = ResearchToolkit(tool_config)
+        logger.info("Research toolkit initialized")
 
     @property
     def llm_available(self) -> bool:
@@ -189,6 +217,7 @@ class ResearchService:
                 ai_research_questions=ai_content.get("research_questions"),
                 ai_methodology_recommendations=ai_content.get("methodology"),
                 ai_search_strategy=ai_content.get("search_strategy"),
+                ai_direct_research=ai_content.get("direct_research"),
                 ai_literature_synthesis=ai_content.get("synthesis"),
                 discovered_papers=[PaperSchema(**p) for p in discovered_papers]
                 if discovered_papers
@@ -368,6 +397,14 @@ class ResearchService:
             )
             content["search_strategy"] = search_result["strategy"]
 
+            # Direct research insights (always generate)
+            direct_research = self._llm_assistant.generate_direct_research(
+                request.topic,
+                request.research_question,
+                request.additional_context or ""
+            )
+            content["direct_research"] = direct_research
+            
             # Literature synthesis (if papers found)
             if papers:
                 paper_dicts = [
@@ -430,6 +467,15 @@ class ResearchService:
             md += f"""## 🤖 AI Methodology Recommendations
 
 {response.ai_methodology_recommendations}
+
+---
+
+"""
+
+        if response.ai_direct_research:
+            md += f"""## 🔬 AI Research Findings
+
+{response.ai_direct_research}
 
 ---
 

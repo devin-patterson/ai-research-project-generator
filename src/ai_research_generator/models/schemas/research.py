@@ -119,6 +119,13 @@ class ResearchRequest(BaseModel):
     use_llm: bool = Field(default=True, description="Whether to use LLM for enhanced analysis")
 
     llm_model: str = Field(default="llama3.1:8b", description="LLM model to use for analysis")
+    
+    # Additional context for research
+    additional_context: Optional[str] = Field(
+        default=None,
+        max_length=5000,
+        description="Additional context, requirements, or focus areas for the research"
+    )
 
     # Output configuration
     output_format: str = Field(
@@ -215,6 +222,7 @@ class ResearchResponse(BaseModel):
     ai_research_questions: Optional[List[str]] = None
     ai_methodology_recommendations: Optional[str] = None
     ai_search_strategy: Optional[str] = None
+    ai_direct_research: Optional[str] = None
     ai_literature_synthesis: Optional[str] = None
 
     # Discovered papers

@@ -33,7 +33,6 @@ from loguru import logger
 from ai_research_generator.optimization.dspy_modules import (
     TopicAnalyzerModule,
     PaperSynthesizerModule,
-    MethodologyRecommenderModule,
     optimize_topic_analyzer,
     optimize_paper_synthesizer,
     create_topic_analysis_examples,

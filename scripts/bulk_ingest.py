@@ -24,7 +24,7 @@ from loguru import logger
 from src.ai_research_generator.rag import RAGService, RAGConfig
 from src.ai_research_generator.tools.economic_data import EconomicDataTool, EconomicDataConfig
 from src.ai_research_generator.tools.current_events import CurrentEventsTool, CurrentEventsConfig
-from src.ai_research_generator.tools.research_tools import ToolConfig, WebSearchTool
+from src.ai_research_generator.tools.research_tools import ToolConfig
 from src.ai_research_generator.legacy.academic_search import UnifiedAcademicSearch
 
 

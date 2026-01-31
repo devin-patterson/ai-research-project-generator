@@ -341,6 +341,7 @@ class AcademicSearchTool(BaseTool):
         num_results: int = 20,
         year_from: Optional[int] = None,
         year_to: Optional[int] = None,
+        **kwargs: Any,
     ) -> List[AcademicPaperResult]:
         """
         Execute academic paper search.

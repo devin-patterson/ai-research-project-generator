@@ -504,18 +504,57 @@ ollama pull llama3.1:8b
 
 ## 📄 License
 
-MIT License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🤝 Contributing
 
-Contributions welcome! Please open an issue or PR.
+We welcome contributions! Please see our [Contributing Guide](docs/development/CONTRIBUTING.md) for details.
+
+### Quick Start for Contributors
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run tests (`uv run pytest`)
+5. Run linting (`uv run ruff check .`)
+6. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
+
+### Code of Conduct
+
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+
+### Security
+
+For security issues, please see our [Security Policy](SECURITY.md). Do not create public issues for security vulnerabilities.
 
 ## 📚 Citation
+
+If you use this project in your research, please cite it:
 
 ```bibtex
 @software{ai_research_generator,
   title = {AI Research Project Generator},
-  year = {2025},
-  url = {https://github.com/your-repo/ai-research-project-generator}
+  author = {AI Research Project Generator Contributors},
+  year = {2026},
+  url = {https://github.com/devin-patterson/ai-research-project-generator},
+  version = {2.2.0}
 }
 ```
+
+## 🙏 Acknowledgments
+
+- [Ollama](https://ollama.ai/) for local LLM inference
+- [LangGraph](https://langchain-ai.github.io/langgraph/) for workflow orchestration
+- [PydanticAI](https://ai.pydantic.dev/) for type-safe AI agents
+- [FastAPI](https://fastapi.tiangolo.com/) for the REST API framework
+- [OpenAlex](https://openalex.org/), [Semantic Scholar](https://www.semanticscholar.org/), [CrossRef](https://www.crossref.org/), and [arXiv](https://arxiv.org/) for academic data
+
+## ⭐ Star History
+
+If you find this project useful, please consider giving it a star!
+
+---
+
+Made with ❤️ by the open source community

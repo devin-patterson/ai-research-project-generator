@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/devin-patterson/ai-research-project-generator\#readme
+    about: Check the documentation before opening an issue
+  - name: Discussions
+    url: https://github.com/devin-patterson/ai-research-project-generator/discussions
+    about: Ask questions and discuss ideas

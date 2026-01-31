@@ -1,14 +1,56 @@
 [project]
 name = "ai-research-project-generator"
-version = "1.0.0"
-description = "A comprehensive solution for generating robust research projects using AI"
+version = "2.2.0"
+description = "A comprehensive solution for generating robust research projects using AI with LangGraph workflows, PydanticAI agents, and multi-source academic search"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "AI Research Assistant"}
+    {name = "AI Research Project Generator Contributors"}
 ]
-keywords = ["research", "ai", "academic", "systematic-review", "methodology"]
+maintainers = [
+    {name = "AI Research Project Generator Contributors"}
+]
+keywords = [
+    "research",
+    "ai",
+    "academic",
+    "systematic-review",
+    "methodology",
+    "langgraph",
+    "pydantic-ai",
+    "llm",
+    "ollama",
+    "citation-management",
+    "google-scholar",
+    "literature-review"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Framework :: FastAPI",
+    "Framework :: Pydantic :: 2",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: General",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/devin-patterson/ai-research-project-generator"
+Documentation = "https://github.com/devin-patterson/ai-research-project-generator#readme"
+Repository = "https://github.com/devin-patterson/ai-research-project-generator.git"
+Issues = "https://github.com/devin-patterson/ai-research-project-generator/issues"
+Changelog = "https://github.com/devin-patterson/ai-research-project-generator/blob/main/docs/CHANGELOG.md"
 
 dependencies = [
     "loguru>=0.7.0",

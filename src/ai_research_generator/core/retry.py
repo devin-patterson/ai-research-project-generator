@@ -134,7 +134,9 @@ def retry_sync(
                             f"All {config.max_retries} retries exhausted for {func.__name__}: {e}"
                         )
 
-            raise last_exception
+            if last_exception is not None:
+                raise last_exception
+            raise RuntimeError(f"Retry logic failed for {func.__name__}")
 
         return wrapper
 
@@ -185,7 +187,9 @@ def retry_async(
                             f"All {config.max_retries} retries exhausted for {func.__name__}: {e}"
                         )
 
-            raise last_exception
+            if last_exception is not None:
+                raise last_exception
+            raise RuntimeError(f"Async retry logic failed for {func.__name__}")
 
         return wrapper
 
@@ -236,4 +240,6 @@ async def retry_operation(
                     f"All {config.max_retries} retries exhausted for {operation_name}: {e}"
                 )
 
-    raise last_exception
+    if last_exception is not None:
+        raise last_exception
+    raise RuntimeError(f"Retry operation failed for {operation_name}")

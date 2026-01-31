@@ -111,7 +111,6 @@ class ResearchProjectOutput(BaseModel):
 # Topic Analysis Agent
 # Note: Agent initialization is deferred to avoid requiring OLLAMA_BASE_URL at import time
 # Use create_topic_analysis_agent() factory function instead
-_topic_analysis_agent: Optional[Agent] = None
 
 
 def create_topic_analysis_agent(model: str = "ollama:llama3.1:8b") -> Agent:

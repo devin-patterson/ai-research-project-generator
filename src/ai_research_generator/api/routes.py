@@ -9,15 +9,15 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
 
-from app.core.config import Settings, get_settings
-from app.core.exceptions import ResearchGenerationError, LLMConnectionError
-from app.schemas.research import (
+from ..core.config import Settings, get_settings
+from ..core.exceptions import ResearchGenerationError, LLMConnectionError
+from ..models.research import (
     ResearchRequest,
     ResearchResponse,
     HealthResponse,
     ErrorResponse,
 )
-from app.services.research_service import ResearchService
+from ..services.research_service import ResearchService
 from datetime import datetime
 
 router = APIRouter()

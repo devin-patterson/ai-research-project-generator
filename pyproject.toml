@@ -39,7 +39,8 @@ dev = [
 ]
 
 [project.scripts]
-research-generator = "main:main"
+research-generator = "src.ai_research_generator.legacy:legacy_main"
+ai-research-api = "src.ai_research_generator.api.main:app"
 
 [build-system]
 requires = ["hatchling"]
@@ -83,7 +84,7 @@ exclude_dirs = ["tests", ".venv", "venv"]
 skips = ["B101"]  # Skip assert warnings in tests
 
 [tool.coverage.run]
-source = ["app", "llm_provider", "academic_search"]
+source = ["src", "llm_provider", "academic_search"]
 branch = true
 
 [tool.coverage.report]

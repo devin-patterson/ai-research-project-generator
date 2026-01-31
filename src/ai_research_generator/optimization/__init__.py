@@ -1,6 +1,6 @@
 """DSPy-based prompt optimization for research workflows."""
 
-from app.optimization.dspy_modules import (
+from .dspy_modules import (
     TopicAnalyzerModule,
     PaperSynthesizerModule,
     MethodologyRecommenderModule,

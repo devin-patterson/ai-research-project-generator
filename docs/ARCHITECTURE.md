@@ -2,39 +2,220 @@
 
 ## Overview
 
-The AI Research Project Generator is built using a **modular, layered architecture** that separates concerns and allows for flexible integration of different AI services and data sources.
+The AI Research Project Generator follows a **modern, layered architecture** with comprehensive AI enablement and proper separation of concerns. The system combines multiple AI frameworks to provide intelligent research project generation while maintaining backward compatibility.
 
-**Version 2.0** introduces a **production-grade FastAPI REST API** with proper separation of concerns following industry best practices.
+## Architecture Overview
 
-## Project Structure
+```mermaid
+graph TB
+    A[User Request] --> B[FastAPI Layer]
+    B --> C[Service Layer]
+    C --> D[AI Components]
+    C --> E[Legacy Layer]
+    
+    D --> D1[PydanticAI Agents]
+    D --> D2[LangGraph Workflows]
+    D --> D3[DSPy Optimization]
+    D --> D4[DeepEval Testing]
+    
+    E --> E1[Academic Search]
+    E --> E2[LLM Provider]
+    E --> E3[Rule-based Generation]
+    
+    D1 --> F[Structured Output]
+    D2 --> G[Stateful Workflows]
+    D3 --> H[Optimized Prompts]
+    D4 --> I[Quality Metrics]
+    
+    F --> J[Enhanced Research Project]
+    G --> J
+    H --> J
+    I --> J
+```
+
+## Package Structure
 
 ```
 ai-research-project-generator/
-├── app/                          # FastAPI Application (v2.0)
-│   ├── __init__.py
-│   ├── main.py                   # Application entry point, lifespan management
-│   ├── api/
-│   │   ├── __init__.py
-│   │   └── routes.py             # REST API endpoints
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── config.py             # Pydantic Settings configuration
-│   │   └── exceptions.py         # Custom exception hierarchy
-│   ├── schemas/
-│   │   ├── __init__.py
-│   │   └── research.py           # Pydantic request/response models
-│   └── services/
-│       ├── __init__.py
-│       └── research_service.py   # Business logic service layer
-├── llm_provider.py               # LLM integration (Ollama, OpenAI)
-├── academic_search.py            # Academic APIs (Semantic Scholar, OpenAlex, CrossRef, arXiv)
-├── ai_research_project_generator.py  # Rule-based project generation
-├── subject_analyzer.py           # Subject analysis algorithms
-├── validation_engine.py          # Quality validation rules
-├── research_engine.py            # Legacy integration layer
-├── main.py                       # Legacy CLI interface
-└── pyproject.toml                # Dependencies (uv)
+├── src/ai_research_generator/          # Main package (src layout)
+│   ├── api/                           # FastAPI routes
+│   │   ├── routes.py              # REST API endpoints
+│   │   └── main.py               # FastAPI app entry
+│   ├── core/                          # Core functionality
+│   │   ├── config.py              # Pydantic Settings
+│   │   ├── exceptions.py          # Custom exceptions
+│   │   └── retry.py               # Retry logic
+│   ├── services/                      # Business logic
+│   │   └── research_service.py     # Main service layer
+│   ├── models/                        # Pydantic schemas
+│   │   └── research.py             # Request/response models
+│   ├── agents/                       # PydanticAI agents
+│   │   └── research_agents.py      # Type-safe agents
+│   ├── workflows/                    # LangGraph workflows
+│   │   └── research_workflow.py     # Stateful workflows
+│   ├── optimization/                  # DSPy optimization
+│   │   └── dspy_modules.py          # Optimized modules
+│   └── legacy/                        # Legacy compatibility
+│       ├── academic_search.py     # Academic search APIs
+│       ├── llm_provider.py        # LLM integration
+│       ├── research_engine.py     # Legacy engine
+│       └── ...                   # Other legacy modules
+├── tests/                             # Test suite
+├── docs/                             # Documentation
+├── scripts/                          # CLI and utilities
+└── examples/                         # Usage examples
 ```
+
+## Core Design Patterns
+
+### 1. **Strategy Pattern** (LLM Providers)
+
+**Location**: `src/ai_research_generator/legacy/llm_provider.py`
+
+**Implementation**:
+```python
+class BaseLLMClient(ABC):
+    @abstractmethod
+    def generate(self, prompt: str, system_prompt: Optional[str] = None) -> LLMResponse
+    
+class OllamaClient(BaseLLMClient):
+    # Ollama-specific implementation
+    
+class OpenAICompatibleClient(BaseLLMClient):
+    # OpenAI-compatible implementation
+```
+
+**Why**: 
+- **Flexibility**: Easy to add new LLM providers (Anthropic, Gemini, local models)
+- **Testability**: Can mock different providers for testing
+- **Configuration**: Switch providers via environment variables without code changes
+
+### 2. **Factory Pattern** (Service Creation)
+
+**Location**: `src/ai_research_generator/legacy/llm_provider.py`, `src/ai_research_generator/legacy/academic_search.py`
+
+**Implementation**:
+```python
+def create_llm_client(config: Optional[LLMConfig] = None) -> BaseLLMClient:
+    if config.provider == LLMProvider.OLLAMA:
+        return OllamaClient(config)
+    elif config.provider == LLMProvider.OPENAI:
+        return OpenAICompatibleClient(config)
+```
+
+**Why**:
+- **Encapsulation**: Hides complex initialization logic
+- **Single Responsibility**: Client creation logic in one place
+- **Easy Testing**: Can inject mock configs
+
+### 3. **Facade Pattern** (Unified Search Interface)
+
+**Location**: `src/ai_research_generator/legacy/academic_search.py`
+
+**Implementation**:
+```python
+class UnifiedAcademicSearch:
+    def search_all(self, query: str, limit_per_source: int) -> List[Paper]:
+        # Unified interface to multiple search APIs
+        pass
+```
+
+**Why**:
+- **Simplicity**: Single interface for multiple search APIs
+- **Extensibility**: Easy to add new search sources
+- **Consistency**: Uniform data structures
+
+### 4. **Agent Pattern** (PydanticAI)
+
+**Location**: `src/ai_research_generator/agents/research_agents.py`
+
+**Implementation**:
+```python
+class TopicAnalyzerAgent(Agent):
+    def __init__(self, model: str, base_url: str):
+        super().__init__(
+            model=f"gateway/{model}",
+            system_prompt="Analyze research topics..."
+        )
+    
+    def run(self, topic: str, discipline: str) -> TopicAnalysis:
+        return self.run(topic, discipline=discipline)
+```
+
+**Why**:
+- **Type Safety**: Pydantic validation ensures structured output
+- **Developer Experience**: FastAPI-like patterns
+- **Error Handling**: Built-in validation and error handling
+
+### 5. **Graph Pattern** (LangGraph)
+
+**Location**: `src/ai_research_generator/workflows/research_workflow.py`
+
+**Implementation**:
+```python
+class ResearchState(TypedDict):
+    topic: str
+    analysis: dict
+    literature: list[str]
+
+def create_research_graph() -> StateGraph:
+    workflow = StateGraph(ResearchState)
+    workflow.add_node("analyze_topic", analyze_topic)
+    workflow.add_node("search_papers", search_papers)
+    workflow.add_edge("analyze_topic", "search_papers")
+    return workflow.compile()
+```
+
+**Why**:
+- **State Management**: Shared state across workflow nodes
+- **Checkpointing**: Save/restore workflow state
+- **Scalability**: Complex multi-agent orchestration
+
+## AI Components Integration
+
+### PydanticAI Integration
+
+- **Location**: `src/ai_research_generator/agents/`
+- **Purpose**: Type-safe LLM output with validation
+- **Benefits**: FastAPI-like DX, automatic validation
+- **Usage**: Structured output for research analysis
+
+### LangGraph Integration
+
+- **Location**: `src/ai_research_generator/workflows/`
+- **Purpose**: Stateful workflow orchestration
+- **Benefits**: Checkpointing, error recovery, parallel processing
+- **Usage**: Complete research generation workflows
+
+### DSPy Integration
+
+- **Location**: `src/ai_research_generator/optimization/`
+- **Purpose**: Eval-driven prompt optimization
+- **Benefits**: Performance optimization, model-agnostic
+- **Usage**: Offline prompt optimization
+
+### DeepEval Integration
+
+- **Location**: `tests/test_evaluation.py`
+- **Purpose**: LLM output evaluation
+- **Benefits**: Quality metrics, regression testing
+- **Usage**: Comprehensive AI component testing
+
+## Migration Strategy
+
+### Legacy → Modern
+
+1. **Phase 1**: Maintain legacy interfaces
+2. **Phase 2**: Add new AI components
+3. **Phase 3**: Integrate AI into main API
+4. **Phase 4**: Deprecate legacy interfaces
+
+### Backward Compatibility
+
+- Legacy modules available in `src/ai_research_generator/legacy/`
+- Import aliases in main package
+- Configuration supports both approaches
+- Gradual migration path
 
 ## Core Design Patterns
 

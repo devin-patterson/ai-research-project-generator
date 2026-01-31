@@ -44,14 +44,6 @@ classifiers = [
     "Topic :: Text Processing :: General",
     "Typing :: Typed",
 ]
-
-[project.urls]
-Homepage = "https://github.com/devin-patterson/ai-research-project-generator"
-Documentation = "https://github.com/devin-patterson/ai-research-project-generator#readme"
-Repository = "https://github.com/devin-patterson/ai-research-project-generator.git"
-Issues = "https://github.com/devin-patterson/ai-research-project-generator/issues"
-Changelog = "https://github.com/devin-patterson/ai-research-project-generator/blob/main/docs/CHANGELOG.md"
-
 dependencies = [
     "loguru>=0.7.0",
     "typing-extensions>=4.0.0",
@@ -80,6 +72,13 @@ dev = [
     "black>=23.0.0",
     "ruff>=0.1.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/devin-patterson/ai-research-project-generator"
+Documentation = "https://github.com/devin-patterson/ai-research-project-generator#readme"
+Repository = "https://github.com/devin-patterson/ai-research-project-generator.git"
+Issues = "https://github.com/devin-patterson/ai-research-project-generator/issues"
+Changelog = "https://github.com/devin-patterson/ai-research-project-generator/blob/main/docs/CHANGELOG.md"
 
 [project.scripts]
 research-generator = "src.ai_research_generator.legacy:legacy_main"

@@ -498,7 +498,9 @@ Write in an academic style suitable for a literature review section."""
         response = self.client.generate(prompt, self.system_prompt)
         return response.content
 
-    def generate_direct_research(self, topic: str, research_question: str, additional_context: str = "") -> str:
+    def generate_direct_research(
+        self, topic: str, research_question: str, additional_context: str = ""
+    ) -> str:
         """Generate direct research insights using LLM knowledge, not just paper synthesis"""
         prompt = f"""Provide comprehensive research insights on the following topic:
 

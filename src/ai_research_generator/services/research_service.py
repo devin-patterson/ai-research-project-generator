@@ -41,9 +41,6 @@ from ..legacy.validation_engine import ValidationEngine
 from ..tools.research_tools import (
     ResearchToolkit,
     ToolConfig,
-    WebSearchTool,
-    AcademicSearchTool,
-    KnowledgeSynthesisTool,
 )
 
 
@@ -68,7 +65,7 @@ class ResearchService:
         self._project_generator = AIResearchProjectGenerator()
         self._subject_analyzer = SubjectAnalyzer()
         self._validation_engine = ValidationEngine()
-        
+
         # Initialize new research toolkit
         self._research_toolkit: Optional[ResearchToolkit] = None
 
@@ -86,7 +83,7 @@ class ResearchService:
 
         # Initialize academic search
         self._init_academic_search()
-        
+
         # Initialize research toolkit
         self._init_research_toolkit()
 
@@ -103,7 +100,7 @@ class ResearchService:
         if self._academic_search:
             self._academic_search.close()
             self._academic_search = None
-        
+
         if self._research_toolkit:
             await self._research_toolkit.close()
             self._research_toolkit = None
@@ -132,7 +129,7 @@ class ResearchService:
             crossref_email=self.settings.crossref_email,
         )
         logger.info("Academic search initialized")
-    
+
     def _init_research_toolkit(self) -> None:
         """Initialize research toolkit with all tools"""
         tool_config = ToolConfig(
@@ -399,12 +396,10 @@ class ResearchService:
 
             # Direct research insights (always generate)
             direct_research = self._llm_assistant.generate_direct_research(
-                request.topic,
-                request.research_question,
-                request.additional_context or ""
+                request.topic, request.research_question, request.additional_context or ""
             )
             content["direct_research"] = direct_research
-            
+
             # Literature synthesis (if papers found)
             if papers:
                 paper_dicts = [

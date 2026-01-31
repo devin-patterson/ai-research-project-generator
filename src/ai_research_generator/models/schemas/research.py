@@ -119,12 +119,12 @@ class ResearchRequest(BaseModel):
     use_llm: bool = Field(default=True, description="Whether to use LLM for enhanced analysis")
 
     llm_model: str = Field(default="llama3.1:8b", description="LLM model to use for analysis")
-    
+
     # Additional context for research
     additional_context: Optional[str] = Field(
         default=None,
         max_length=5000,
-        description="Additional context, requirements, or focus areas for the research"
+        description="Additional context, requirements, or focus areas for the research",
     )
 
     # Output configuration

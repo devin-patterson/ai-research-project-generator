@@ -90,7 +90,9 @@ jobs:
         run: uv python install 3.12
       
       - name: Install Bandit
-        run: uv pip install bandit[toml]
+        run: |
+          uv venv
+          uv pip install bandit[toml]
       
       - name: Run Bandit
         run: uv run bandit -r app/ llm_provider.py academic_search.py -c pyproject.toml -f json -o bandit-report.json

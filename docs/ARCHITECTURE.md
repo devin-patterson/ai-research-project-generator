@@ -85,22 +85,40 @@ flowchart TB
             THEMES --> METHODOLOGY[Methodology Analysis]
         end
         
-        METHODOLOGY --> VERIFY_CHECK{Verification Enabled?}
-        VERIFY_CHECK --> |Yes| VERIFICATION
-        VERIFY_CHECK --> |No| SYNTHESIS
+        METHODOLOGY --> ECON_DATA
         
-        subgraph Stage4["Stage 4: Verification"]
-            VERIFICATION[✅ Verification Node]
-            VERIFICATION --> FACT_TOOL
-            subgraph FactCheck["Fact Verification"]
-                FACT_TOOL[🔎 FactVerificationTool]
-                FACT_TOOL --> CREDIBILITY[Source Credibility]
+        subgraph Stage4["Stage 4: Economic Data"]
+            ECON_DATA[📊 Economic Data Node]
+            ECON_DATA --> ECON_TOOLS
+            subgraph EconTools["Government Data APIs"]
+                direction LR
+                FRED_T[🏦 FRED API]
+                BLS_T[👷 BLS API]
+                BEA_T[📈 BEA API]
+                CENSUS_T[📋 Census API]
+                TREASURY_T[💰 Treasury API]
             end
+            ECON_TOOLS --> INDICATORS[Economic Indicators]
         end
         
-        CREDIBILITY --> SYNTHESIS
+        INDICATORS --> EVENTS_CHECK{Current Events Enabled?}
+        EVENTS_CHECK --> |Yes| CURRENT_EVENTS
+        EVENTS_CHECK --> |No| SYNTHESIS
         
-        subgraph Stage5["Stage 5: Synthesis"]
+        subgraph Stage5["Stage 5: Current Events"]
+            CURRENT_EVENTS[📰 Current Events Node]
+            CURRENT_EVENTS --> NEWS_TOOLS
+            subgraph NewsTools["News & Market Analysis"]
+                NEWS_SEARCH[🔍 Web News Search]
+                NEWS_SEARCH --> MARKET_ANALYSIS[� Market Conditions]
+                MARKET_ANALYSIS --> TRENDS[📈 Emerging Trends]
+            end
+            NEWS_TOOLS --> RISKS_OPPS[Risks & Opportunities]
+        end
+        
+        RISKS_OPPS --> SYNTHESIS
+        
+        subgraph Stage6["Stage 6: Synthesis"]
             SYNTHESIS[🧠 Synthesis Node]
             SYNTHESIS --> SYNTH_TOOL
             subgraph SynthTools["Synthesis Tools"]
@@ -112,7 +130,7 @@ flowchart TB
         
         RECOMMEND --> REPORT
         
-        subgraph Stage6["Stage 6: Report"]
+        subgraph Stage7["Stage 7: Report"]
             REPORT[📝 Report Node]
             REPORT --> CITE_MGR
             subgraph Citation["Citation Management"]
@@ -135,10 +153,13 @@ flowchart TB
 
     style START fill:#90EE90
     style END_NODE fill:#FFB6C1
+    style START fill:#90EE90
+    style END_NODE fill:#FFB6C1
     style DISCOVERY fill:#E6E6FA
     style COLLECTION fill:#E6E6FA
     style ANALYSIS fill:#E6E6FA
-    style VERIFICATION fill:#E6E6FA
+    style ECON_DATA fill:#E6E6FA
+    style CURRENT_EVENTS fill:#E6E6FA
     style SYNTHESIS fill:#E6E6FA
     style REPORT fill:#E6E6FA
     style AGENT1 fill:#FFE4B5
@@ -146,7 +167,12 @@ flowchart TB
     style TOOL1 fill:#B0E0E6
     style TOOL2 fill:#B0E0E6
     style TOOL3 fill:#B0E0E6
-    style FACT_TOOL fill:#B0E0E6
+    style FRED_T fill:#FFDAB9
+    style BLS_T fill:#FFDAB9
+    style BEA_T fill:#FFDAB9
+    style CENSUS_T fill:#FFDAB9
+    style TREASURY_T fill:#FFDAB9
+    style NEWS_SEARCH fill:#B0E0E6
     style SYNTH_TOOL fill:#B0E0E6
     style CITE_MGR fill:#DDA0DD
 ```
@@ -239,6 +265,20 @@ JSON Output"]
 ---
 Cross-reference
 Credibility Score"]
+            
+            EVENTS["CurrentEventsTool
+---
+News Search
+Market Analysis
+LLM Synthesis"]
+            
+            ECON["EconomicDataTool
+---
+FRED API
+BLS API
+BEA API
+Census API
+Treasury API"]
         end
         
         subgraph Toolkit["ResearchToolkit"]
@@ -262,12 +302,16 @@ generate_report()"]
     BaseTool --> SCHOLAR
     BaseTool --> SYNTH
     BaseTool --> VERIFY
+    BaseTool --> EVENTS
+    BaseTool --> ECON
     
     WEB --> TK
     ACADEMIC --> TK
     SCHOLAR --> TK
     SYNTH --> TK
     VERIFY --> TK
+    EVENTS --> TK
+    ECON --> TK
     
     WEB --> LG1
     ACADEMIC --> LG2
@@ -278,6 +322,8 @@ generate_report()"]
     style BaseTool fill:#E6E6FA
     style Toolkit fill:#98FB98
     style LangGraphTools fill:#FFB6C1
+    style EVENTS fill:#FFDAB9
+    style ECON fill:#FFDAB9
 ```
 
 ## Citation Management Flow
@@ -352,7 +398,9 @@ ai-research-project-generator/
 │   ├── tools/                        # Research Tools (NEW v2.2)
 │   │   ├── research_tools.py      # Core research tools
 │   │   ├── google_scholar.py      # Google Scholar integration
-│   │   └── citation_manager.py    # Citation management
+│   │   ├── citation_manager.py    # Citation management
+│   │   ├── current_events.py      # Current events & news (NEW v2.3)
+│   │   └── economic_data.py       # Gov economic data APIs (NEW v2.3)
 │   ├── optimization/                  # DSPy optimization
 │   │   └── dspy_modules.py          # Optimized modules
 │   └── legacy/                        # Legacy compatibility
@@ -1265,16 +1313,16 @@ async def research_error_handler(request: Request, exc: ResearchGenerationError)
 ## Trade-offs & Technical Debt
 
 ### Current Limitations:
-1. **No caching**: Repeated queries hit APIs
+1. ~~**No caching**: Repeated queries hit APIs~~ ✅ Fixed in v2.3
 2. **No tests**: Need comprehensive test suite
 3. **Limited error recovery**: Could add retry logic with exponential backoff
 4. **No metrics**: Could track API usage, costs
 5. **No rate limiting on API**: Could add request throttling
 
 ### Intentional Simplifications:
-1. **In-memory only**: Keeps it simple, portable
+1. ~~**In-memory only**: Keeps it simple, portable~~ ✅ ChromaDB persistence added in v2.3
 2. **Sync core modules**: Async only at service layer
-3. **No database**: Stateless design for simplicity
+3. ~~**No database**: Stateless design for simplicity~~ ✅ Vector DB added in v2.3
 
 ### Technical Debt Addressed in v2.0:
 1. ✅ **Added async support** via FastAPI service layer
@@ -1355,6 +1403,92 @@ async def research_error_handler(request: Request, exc: ResearchGenerationError)
 6. ✅ Web search tool (Serper, Tavily, DuckDuckGo)
 7. ✅ Knowledge synthesis tool
 8. ✅ Fact verification tool
+
+### Completed in v2.3 (RAG & Caching):
+1. ✅ 3-Layer Caching Architecture
+2. ✅ RAG Knowledge Base with ChromaDB
+3. ✅ Semantic Query Cache (0.92 similarity threshold)
+4. ✅ TTL-based Data Collection Cache
+5. ✅ LangChain integration for embeddings and vector storage
+6. ✅ Bulk ingestion script for pre-populating knowledge base
+7. ✅ Automatic report caching for similar queries
+
+---
+
+## RAG & Caching Architecture (v2.3)
+
+The system implements a **3-layer caching and RAG architecture** to improve response quality, reduce API costs, and enable cumulative knowledge over time.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 1: SEMANTIC QUERY CACHE                              │
+│  - Embed query → Check similarity (threshold: 0.92)         │
+│  - Return cached response if similar query exists           │
+│  - Reduces LLM calls 40-60%                                 │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 2: DATA COLLECTION CACHE (TTL-based)                 │
+│  - Economic data: 4 hours TTL                               │
+│  - News/events: 1 hour TTL                                  │
+│  - Academic papers: 24 hours TTL                            │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 3: RAG KNOWLEDGE BASE                                │
+│  - Vector Store: ChromaDB (local, lightweight)              │
+│  - Collections: economic_data, academic_papers,             │
+│                 current_events, research_history            │
+│  - Ingestion: Chunk → Embed → Deduplicate → Store           │
+│  - Retrieval: Query → Top-k chunks → Re-rank → Synthesize   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Technology Stack
+
+| Component | Implementation | Rationale |
+|-----------|----------------|-----------|
+| Vector Store | ChromaDB | Local, no external deps, easy setup |
+| Embeddings | Ollama `nomic-embed-text` | Consistent with existing Ollama setup |
+| Text Splitting | LangChain `RecursiveCharacterTextSplitter` | 512 tokens, 50 overlap |
+| Cache | In-memory with TTL | Start simple, scale to Redis when needed |
+
+### RAG Module Structure
+
+```
+src/ai_research_generator/
+├── rag/
+│   ├── __init__.py          # Module exports
+│   └── rag_service.py       # LangChain-based RAG service
+├── cache/
+│   ├── __init__.py          # Module exports
+│   ├── data_cache.py        # TTL-based data cache (Layer 2)
+│   └── semantic_cache.py    # Semantic query cache (Layer 1)
+```
+
+### Collections
+
+| Collection | Purpose | Data Types |
+|------------|---------|------------|
+| `economic_data` | Economic indicators | GDP, inflation, employment, interest rates |
+| `academic_papers` | Research papers | Titles, abstracts, authors, citations |
+| `current_events` | News and events | Market conditions, trends, risks |
+| `research_history` | Past research | Generated reports, queries |
+| `semantic_cache` | Query cache | Query-response pairs |
+
+### Bulk Ingestion
+
+Pre-populate the knowledge base using the bulk ingestion script:
+
+```bash
+# Ingest all data sources
+uv run python scripts/bulk_ingest.py --all
+
+# Ingest specific sources
+uv run python scripts/bulk_ingest.py --economic
+uv run python scripts/bulk_ingest.py --papers --topics "investment strategies"
+uv run python scripts/bulk_ingest.py --events
+```
 
 ---
 

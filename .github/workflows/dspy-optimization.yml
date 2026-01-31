@@ -1,0 +1,93 @@
+name: DSPy Prompt Optimization
+
+on:
+  workflow_dispatch:
+    inputs:
+      optimization_level:
+        description: 'Optimization level'
+        required: true
+        default: 'light'
+        type: choice
+        options:
+          - light
+          - medium
+          - heavy
+      model:
+        description: 'LLM model for optimization'
+        required: true
+        default: 'openai/gpt-4o-mini'
+        type: string
+      module:
+        description: 'Module to optimize'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - topic_analyzer
+          - paper_synthesizer
+          - methodology_recommender
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  optimize:
+    name: Optimize Prompts with DSPy
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run DSPy Optimization
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          uv run python -m app.optimization.run_optimization \
+            --level ${{ inputs.optimization_level }} \
+            --model "${{ inputs.model }}" \
+            --module ${{ inputs.module }}
+
+      - name: Upload optimized modules
+        uses: actions/upload-artifact@v4
+        with:
+          name: optimized-prompts-${{ github.run_id }}
+          path: optimized_modules/
+          retention-days: 30
+
+      - name: Create optimization report
+        run: |
+          echo "## DSPy Optimization Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Optimization Level:** ${{ inputs.optimization_level }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Model:** ${{ inputs.model }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Module:** ${{ inputs.module }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Optimized Files" >> $GITHUB_STEP_SUMMARY
+          if [ -d "optimized_modules" ]; then
+            ls -la optimized_modules/ >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No optimized modules generated" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Commit optimized modules (optional)
+        if: inputs.module == 'all'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add optimized_modules/
+          git commit -m "chore: Update optimized DSPy modules [skip ci]" || echo "No changes to commit"
+          git push

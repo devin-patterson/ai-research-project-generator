@@ -2,9 +2,9 @@ name: Security
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
   schedule:
     # Run security scans weekly on Mondays at 9am UTC
     - cron: '0 9 * * 1'
@@ -13,6 +13,8 @@ permissions:
   contents: read
   security-events: write
   actions: read
+  checks: write
+  pull-requests: write
 
 jobs:
   codeql:
@@ -90,7 +92,9 @@ jobs:
         run: uv python install 3.12
       
       - name: Install Bandit
-        run: uv pip install bandit[toml]
+        run: |
+          uv venv
+          uv pip install bandit[toml]
       
       - name: Run Bandit
         run: uv run bandit -r app/ llm_provider.py academic_search.py -c pyproject.toml -f json -o bandit-report.json

@@ -226,44 +226,107 @@ assistant.close()
 
 ## 🏗️ Architecture
 
+The AI Research Project Generator follows a **modern, layered architecture** with comprehensive AI enablement:
+
+```mermaid
+graph TB
+    A[User Request] --> B[FastAPI API Layer]
+    B --> C[Service Layer]
+    C --> D[AI Components]
+    C --> E[Legacy Compatibility]
+    
+    D --> D1[PydanticAI Agents]
+    D --> D2[LangGraph Workflows]
+    D --> D3[DSPy Optimization]
+    D --> D4[DeepEval Testing]
+    
+    E --> E1[Academic Search]
+    E --> E2[LLM Provider]
+    E --> E3[Rule-based Generation]
+    
+    D1 --> F[Structured Output]
+    D2 --> G[Stateful Workflows]
+    D3 --> H[Optimized Prompts]
+    D4 --> I[Quality Metrics]
+    
+    F --> J[Enhanced Research Project]
+    G --> J
+    H --> J
+    I --> J
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    AI Research Engine                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │ LLM Provider │  │  Academic    │  │  Project     │       │
-│  │   (Ollama)   │  │   Search     │  │  Generator   │       │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
-│         │                 │                 │                │
-│         ▼                 ▼                 ▼                │
-│  ┌──────────────────────────────────────────────────┐       │
-│  │              Research Engine                      │       │
-│  │  - Topic Analysis    - Paper Discovery           │       │
-│  │  - Question Gen      - Literature Synthesis      │       │
-│  │  - Methodology Rec   - Project Structure         │       │
-│  └──────────────────────────────────────────────────┘       │
-│                          │                                   │
-│                          ▼                                   │
-│  ┌──────────────┐  ┌──────────────┐                         │
-│  │   Subject    │  │  Validation  │                         │
-│  │   Analyzer   │  │   Engine     │                         │
-│  └──────────────┘  └──────────────┘                         │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+
+### Key Architectural Patterns
+
+| Pattern | Implementation | Purpose |
+|---------|----------------|---------|
+| **Strategy Pattern** | LLM Provider abstraction | Multiple LLM backends |
+| **Factory Pattern** | Service creation | Dependency injection |
+| **Facade Pattern** | Unified search interface | API consolidation |
+| **Graph Pattern** | LangGraph workflows | Stateful orchestration |
+| **Agent Pattern** | PydanticAI agents | Type-safe LLM output |
+
+### Package Structure
+
 ```
+ai-research-project-generator/
+├── src/ai_research_generator/          # Main package (src layout)
+│   ├── api/                           # FastAPI routes
+│   │   ├── routes.py              # REST API endpoints
+│   │   └── main.py               # FastAPI app entry
+│   ├── core/                          # Core functionality
+│   │   ├── config.py              # Pydantic Settings
+│   │   ├── exceptions.py          # Custom exceptions
+│   │   └── retry.py               # Retry logic
+│   ├── services/                      # Business logic
+│   │   └── research_service.py     # Main service layer
+│   ├── models/                        # Pydantic schemas
+│   │   └── research.py             # Request/response models
+│   ├── agents/                       # PydanticAI agents
+│   │   └── research_agents.py      # Type-safe agents
+│   ├── workflows/                    # LangGraph workflows
+│   │   └── research_workflow.py     # Stateful workflows
+│   ├── optimization/                  # DSPy optimization
+│   │   └── dspy_modules.py          # Optimized modules
+│   └── legacy/                        # Legacy compatibility
+│       ├── academic_search.py     # Academic search APIs
+│       ├── llm_provider.py        # LLM integration
+│       ├── research_engine.py     # Legacy engine
+│       └── ...                   # Other legacy modules
+├── tests/                             # Test suite
+├── docs/                             # Documentation
+├── scripts/                          # CLI and utilities
+└── examples/                         # Usage examples
+```
+
+### AI Integration Status
+
+| Component | Framework | Status | Integration |
+|------------|-----------|---------|------------|
+| **PydanticAI** | ✅ Active | Integrated in API routes |
+| **LangGraph** | ✅ Active | Used for complex workflows |
+| **DSPy** | ✅ Active | Offline optimization |
+| **DeepEval** | ✅ Active | Quality testing |
+| **FastAPI** | ✅ Active | REST API layer |
+| **Legacy Code** | ✅ Maintained | Backward compatibility |
 
 ### Components
 
-| File | Description |
-|------|-------------|
-| `research_engine.py` | Main integrated engine combining all components |
-| `llm_provider.py` | Local LLM integration (Ollama, OpenAI-compatible) |
-| `academic_search.py` | Academic search APIs (Semantic Scholar, OpenAlex, CrossRef, arXiv) |
-| `ai_research_project_generator.py` | Rule-based project structure generation |
-| `subject_analyzer.py` | Deep subject analysis and concept extraction |
-| `validation_engine.py` | Quality validation and PRISMA compliance |
-| `main.py` | CLI interface |
+| Module | Description |
+|--------|-------------|
+| **FastAPI App** | Modern REST API with AI integration |
+| **Research Service** | Business logic and orchestration |
+| **PydanticAI Agents** | Type-safe LLM agents |
+| **LangGraph Workflows** | Stateful workflow orchestration |
+| **DSPy Optimization** | Offline prompt optimization |
+| **Legacy Modules** | Backward compatibility layer |
+
+### New AI Features
+
+- **🤖 Type-Safe Agents**: PydanticAI ensures structured, validated LLM output
+- **🔄 Stateful Workflows**: LangGraph enables complex, resumable workflows
+- **⚡ Prompt Optimization**: DSPy provides eval-driven optimization
+- **📊 Quality Testing**: DeepEval for comprehensive LLM evaluation
+- **🔧 Configuration**: Unified settings management
 
 ## ⚙️ Configuration
 
@@ -314,14 +377,91 @@ config = LLMConfig(
 
 The enhanced research project includes:
 
-- **🤖 AI Topic Analysis**: Deep analysis of the research topic
-- **🤖 AI Research Questions**: LLM-generated focused questions
-- **🤖 AI Methodology Recommendations**: Detailed methodology guidance
-- **🤖 AI Search Strategy**: Comprehensive literature search plan
+### 🤖 AI-Enhanced Features
+- **Structured Topic Analysis**: Type-safe analysis with PydanticAI validation
+- **Stateful Workflows**: Complex multi-stage research generation with LangGraph
+- **Optimized Prompts**: DSPy-optimized prompts for better performance
+- **Quality Metrics**: DeepEval-based evaluation and testing
+
+### 📚 Traditional Features
 - **📚 Discovered Papers**: Real papers from academic databases
-- **🤖 AI Literature Synthesis**: Synthesis of discovered papers
 - **📋 Project Structure**: Complete research project framework
 - **✅ Validation Report**: Quality assessment and recommendations
+
+### 🚀 New API Capabilities
+
+```python
+# FastAPI endpoint with AI integration
+POST /api/v1/research/generate
+{
+    "topic": "Machine learning in healthcare",
+    "research_question": "How effective is ML in medical diagnosis?",
+    "use_ai_workflow": true,
+    "optimization_level": "medium"
+}
+
+# Response includes AI-enhanced analysis
+{
+    "project": "...",
+    "ai_analysis": {
+        "key_concepts": ["machine learning", "healthcare", "diagnosis"],
+        "complexity": "advanced",
+        "confidence": 0.92
+    },
+    "workflow_id": "research_workflow_12345"
+}
+```
+
+## 🔧 Installation
+
+### 1. Install Ollama (for local LLM)
+
+```bash
+# macOS
+brew install ollama
+
+# Linux
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Windows
+# Download from https://ollama.ai
+```
+
+### 2. Pull a model
+
+```bash
+# Recommended for most users (8GB+ VRAM)
+ollama pull llama3.1:8b
+
+# For laptops/limited hardware
+ollama pull phi4:3.8b
+
+# For best quality (24GB+ VRAM)
+ollama pull qwen2.5:32b
+```
+
+### 3. Install the project
+
+```bash
+git clone <repository-url>
+cd ai-research-project-generator
+
+# Using uv (recommended)
+uv sync
+
+# Or using pip
+pip install -e .
+```
+
+### 4. Start the API server
+
+```bash
+# Start FastAPI server
+uv run ai-research-api
+
+# Or use legacy CLI
+uv run research-generator --help
+```
 
 ## 🔧 Troubleshooting
 

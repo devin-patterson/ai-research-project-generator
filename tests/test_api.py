@@ -7,7 +7,7 @@ Uses FastAPI TestClient for integration testing.
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
+from src.ai_research_generator.api.main import app
 
 
 @pytest.fixture

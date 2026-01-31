@@ -33,6 +33,300 @@ graph TB
     I --> J
 ```
 
+## LangGraph Multi-Stage Research Workflow
+
+The following diagram shows the complete LangGraph workflow with PydanticAI agents and research tools:
+
+```mermaid
+flowchart TB
+    subgraph Input["📥 Input"]
+        REQ[Research Request]
+        REQ --> |topic, question, config| START
+    end
+
+    subgraph LangGraph["🔄 LangGraph StateGraph"]
+        START((START)) --> DISCOVERY
+        
+        subgraph Stage1["Stage 1: Discovery"]
+            DISCOVERY[🔍 Discovery Node]
+            DISCOVERY --> |analyze topic| AGENT1
+            subgraph PydanticAI1["PydanticAI Agent"]
+                AGENT1[TopicAnalyzerAgent]
+                AGENT1 --> |TopicAnalysis| CONCEPTS
+            end
+            CONCEPTS[Extract Key Concepts]
+            CONCEPTS --> STRATEGY[Create Search Strategy]
+        end
+        
+        STRATEGY --> COLLECTION
+        
+        subgraph Stage2["Stage 2: Collection"]
+            COLLECTION[📚 Collection Node]
+            COLLECTION --> |parallel| TOOLS
+            subgraph Tools["Research Tools"]
+                direction LR
+                TOOL1[🔬 AcademicSearchTool]
+                TOOL2[📖 GoogleScholarTool]
+                TOOL3[🌐 WebSearchTool]
+            end
+            TOOLS --> AGGREGATE[Aggregate & Deduplicate]
+        end
+        
+        AGGREGATE --> ANALYSIS
+        
+        subgraph Stage3["Stage 3: Analysis"]
+            ANALYSIS[🧪 Analysis Node]
+            ANALYSIS --> |sources| AGENT2
+            subgraph PydanticAI2["PydanticAI Agent"]
+                AGENT2[PaperAnalyzerAgent]
+                AGENT2 --> |PaperSynthesis| THEMES
+            end
+            THEMES[Theme Extraction]
+            THEMES --> METHODOLOGY[Methodology Analysis]
+        end
+        
+        METHODOLOGY --> VERIFY_CHECK{Verification Enabled?}
+        VERIFY_CHECK --> |Yes| VERIFICATION
+        VERIFY_CHECK --> |No| SYNTHESIS
+        
+        subgraph Stage4["Stage 4: Verification"]
+            VERIFICATION[✅ Verification Node]
+            VERIFICATION --> FACT_TOOL
+            subgraph FactCheck["Fact Verification"]
+                FACT_TOOL[🔎 FactVerificationTool]
+                FACT_TOOL --> CREDIBILITY[Source Credibility]
+            end
+        end
+        
+        CREDIBILITY --> SYNTHESIS
+        
+        subgraph Stage5["Stage 5: Synthesis"]
+            SYNTHESIS[🧠 Synthesis Node]
+            SYNTHESIS --> SYNTH_TOOL
+            subgraph SynthTools["Synthesis Tools"]
+                SYNTH_TOOL[💡 KnowledgeSynthesisTool]
+                SYNTH_TOOL --> |LLM| GAPS[Identify Gaps]
+            end
+            GAPS --> RECOMMEND[Generate Recommendations]
+        end
+        
+        RECOMMEND --> REPORT
+        
+        subgraph Stage6["Stage 6: Report"]
+            REPORT[📝 Report Node]
+            REPORT --> CITE_MGR
+            subgraph Citation["Citation Management"]
+                CITE_MGR[📚 CitationManager]
+                CITE_MGR --> |APA/MLA/BibTeX| BIBLIOGRAPHY
+            end
+            BIBLIOGRAPHY[Format Bibliography]
+            BIBLIOGRAPHY --> EXEC_SUMMARY[Executive Summary]
+            EXEC_SUMMARY --> DETAILED[Detailed Report]
+        end
+        
+        DETAILED --> END_NODE((END))
+    end
+
+    subgraph Output["📤 Output"]
+        END_NODE --> RESULT[ResearchReport]
+        RESULT --> |JSON| API_RESP[API Response]
+        RESULT --> |Markdown| MD_FILE[Markdown Export]
+    end
+
+    style START fill:#90EE90
+    style END_NODE fill:#FFB6C1
+    style DISCOVERY fill:#E6E6FA
+    style COLLECTION fill:#E6E6FA
+    style ANALYSIS fill:#E6E6FA
+    style VERIFICATION fill:#E6E6FA
+    style SYNTHESIS fill:#E6E6FA
+    style REPORT fill:#E6E6FA
+    style AGENT1 fill:#FFE4B5
+    style AGENT2 fill:#FFE4B5
+    style TOOL1 fill:#B0E0E6
+    style TOOL2 fill:#B0E0E6
+    style TOOL3 fill:#B0E0E6
+    style FACT_TOOL fill:#B0E0E6
+    style SYNTH_TOOL fill:#B0E0E6
+    style CITE_MGR fill:#DDA0DD
+```
+
+## PydanticAI Agents Detail
+
+```mermaid
+flowchart LR
+    subgraph Agents["PydanticAI Agents"]
+        subgraph TopicAgent["TopicAnalyzerAgent"]
+            TA_IN[topic: str] --> TA_AGENT[Agent]
+            TA_AGENT --> |structured output| TA_OUT[TopicAnalysis]
+            TA_OUT --> TA_FIELDS["- key_concepts: list[str]
+- research_scope: str
+- complexity_level: str
+- suggested_subtopics: list[str]"]
+        end
+        
+        subgraph PaperAgent["PaperAnalyzerAgent"]
+            PA_IN[papers: list] --> PA_AGENT[Agent]
+            PA_AGENT --> |structured output| PA_OUT[PaperSynthesis]
+            PA_OUT --> PA_FIELDS["- themes: list[str]
+- consensus_points: list[str]
+- controversies: list[str]
+- gaps: list[str]"]
+        end
+        
+        subgraph MethodAgent["MethodologyAgent"]
+            MA_IN[context: dict] --> MA_AGENT[Agent]
+            MA_AGENT --> |structured output| MA_OUT[MethodologyRec]
+            MA_OUT --> MA_FIELDS["- primary_method: str
+- data_collection: list[str]
+- analysis_techniques: list[str]
+- limitations: list[str]"]
+        end
+    end
+    
+    subgraph LLM["LLM Backend"]
+        OLLAMA[Ollama Server]
+        OLLAMA --> |llama3.1:8b| RESPONSE[JSON Response]
+    end
+    
+    TA_AGENT --> OLLAMA
+    PA_AGENT --> OLLAMA
+    MA_AGENT --> OLLAMA
+
+    style TopicAgent fill:#FFE4B5
+    style PaperAgent fill:#FFE4B5
+    style MethodAgent fill:#FFE4B5
+    style OLLAMA fill:#98FB98
+```
+
+## Research Tools Architecture
+
+```mermaid
+flowchart TB
+    subgraph ToolsModule["src/ai_research_generator/tools/"]
+        subgraph BaseTool["BaseTool (ABC)"]
+            BT_PROPS["- config: ToolConfig
+- http_client: AsyncClient"]
+            BT_METHODS["+ execute(**kwargs)
++ close()"]
+        end
+        
+        subgraph Implementations["Tool Implementations"]
+            direction LR
+            WEB["WebSearchTool
+---
+Serper API
+Tavily API
+DuckDuckGo"]
+            
+            ACADEMIC["AcademicSearchTool
+---
+OpenAlex
+CrossRef
+Semantic Scholar"]
+            
+            SCHOLAR["GoogleScholarTool
+---
+scholarly lib
+SerpAPI"]
+            
+            SYNTH["KnowledgeSynthesisTool
+---
+LLM Synthesis
+JSON Output"]
+            
+            VERIFY["FactVerificationTool
+---
+Cross-reference
+Credibility Score"]
+        end
+        
+        subgraph Toolkit["ResearchToolkit"]
+            TK["Unified Interface
+---
+conduct_research()
+generate_report()"]
+        end
+        
+        subgraph LangGraphTools["@tool Decorated Functions"]
+            LG1["search_web()"]
+            LG2["search_academic_papers()"]
+            LG3["synthesize_knowledge()"]
+            LG4["verify_facts()"]
+            LG5["generate_research_report()"]
+        end
+    end
+    
+    BaseTool --> WEB
+    BaseTool --> ACADEMIC
+    BaseTool --> SCHOLAR
+    BaseTool --> SYNTH
+    BaseTool --> VERIFY
+    
+    WEB --> TK
+    ACADEMIC --> TK
+    SCHOLAR --> TK
+    SYNTH --> TK
+    VERIFY --> TK
+    
+    WEB --> LG1
+    ACADEMIC --> LG2
+    SYNTH --> LG3
+    VERIFY --> LG4
+    TK --> LG5
+
+    style BaseTool fill:#E6E6FA
+    style Toolkit fill:#98FB98
+    style LangGraphTools fill:#FFB6C1
+```
+
+## Citation Management Flow
+
+```mermaid
+flowchart LR
+    subgraph Input["Source Data"]
+        PAPER[Academic Paper]
+        WEB[Web Source]
+        SCHOLAR[Google Scholar Result]
+    end
+    
+    subgraph CitationManager["CitationManager"]
+        ADD[add_citation]
+        ADD --> STORE[(Citations Dict)]
+        STORE --> FORMAT[CitationFormatter]
+        
+        subgraph Styles["10 Citation Styles"]
+            direction TB
+            S1[BibTeX]
+            S2[APA 6/7]
+            S3[MLA 8/9]
+            S4[Chicago]
+            S5[IEEE]
+            S6[Harvard]
+            S7[Vancouver]
+        end
+        
+        FORMAT --> Styles
+    end
+    
+    subgraph Output["Output Formats"]
+        INTEXT["In-text: (Author, Year)"]
+        BIB["Bibliography"]
+        BIBTEX["BibTeX Export"]
+    end
+    
+    PAPER --> ADD
+    WEB --> ADD
+    SCHOLAR --> ADD
+    
+    Styles --> INTEXT
+    Styles --> BIB
+    Styles --> BIBTEX
+
+    style CitationManager fill:#DDA0DD
+    style Styles fill:#FFE4B5
+```
+
 ## Package Structure
 
 ```

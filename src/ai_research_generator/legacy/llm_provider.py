@@ -498,6 +498,36 @@ Write in an academic style suitable for a literature review section."""
         response = self.client.generate(prompt, self.system_prompt)
         return response.content
 
+    def generate_direct_research(
+        self, topic: str, research_question: str, additional_context: str = ""
+    ) -> str:
+        """Generate direct research insights using LLM knowledge, not just paper synthesis"""
+        prompt = f"""Provide comprehensive research insights on the following topic:
+
+Topic: {topic}
+
+Research Question: {research_question}
+
+Additional Context:
+{additional_context}
+
+Generate a detailed research analysis that includes:
+
+1. **Key Findings and Insights**: Direct answers to the research question based on established knowledge
+2. **Cultural and Organizational Factors**: Relevant cultural, social, and organizational dynamics
+3. **Best Practices**: Proven strategies and approaches
+4. **Common Challenges**: Known obstacles and difficulties
+5. **Practical Recommendations**: Actionable guidance and strategies
+6. **Case Examples**: Real-world examples or scenarios (if applicable)
+7. **Risk Factors and Pitfalls**: Things to avoid or be aware of
+8. **Success Factors**: Elements that contribute to positive outcomes
+
+Be specific, practical, and actionable. Draw on established knowledge about the topic.
+Write in a professional, informative style suitable for business or organizational use."""
+
+        response = self.client.generate(prompt, self.system_prompt)
+        return response.content
+
     def evaluate_quality(self, methodology: str, research_design: str) -> Dict[str, Any]:
         """Evaluate research quality using LLM"""
         prompt = f"""Evaluate the quality and rigor of this research design:

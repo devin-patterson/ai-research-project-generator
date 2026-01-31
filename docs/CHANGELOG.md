@@ -15,6 +15,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CONTRIBUTING.md guide
 - SECURITY.md policy
 
+## [2.2.0] - 2026-01-31
+
+### Added
+- **Multi-Stage Research Workflows** with LangGraph
+  - 6 configurable stages: Discovery, Collection, Analysis, Verification, Synthesis, Report
+  - Parallel source collection from multiple databases
+  - Progress tracking and quality metrics
+  - Checkpointing support for pause/resume
+- **Google Scholar Integration**
+  - `GoogleScholarTool` with scholarly library support
+  - SerpAPI backend for reliable access (optional)
+  - Author paper search and paper details retrieval
+- **Citation Management System**
+  - `CitationManager` for organizing citations
+  - `CitationFormatter` with 10 citation styles:
+    - BibTeX, APA, APA7, MLA, MLA9, Chicago, Chicago Author-Date, IEEE, Harvard, Vancouver
+  - In-text citation generation
+  - Bibliography export in multiple formats
+  - Automatic citation key generation
+- **Research Tools Module** (`src/ai_research_generator/tools/`)
+  - `WebSearchTool` - Web search via Serper, Tavily, or DuckDuckGo
+  - `AcademicSearchTool` - Multi-database academic search
+  - `KnowledgeSynthesisTool` - LLM-powered knowledge synthesis
+  - `FactVerificationTool` - Claim verification across sources
+  - `ResearchToolkit` - Unified interface for comprehensive research
+  - LangGraph-compatible `@tool` decorated functions
+- **Direct Research Generation**
+  - `generate_direct_research()` method for LLM-based research insights
+  - AI Research Findings section in markdown export
+  - `ai_direct_research` field in API response
+- **New Schema Fields**
+  - `additional_context` field in `ResearchRequest`
+  - `ai_direct_research` field in `ResearchResponse`
+
+### Changed
+- Updated `ResearchService` to integrate new research toolkit
+- Enhanced markdown export with AI Research Findings section
+
+### Dependencies
+- Added `scholarly` library for Google Scholar access
+
 ## [2.0.0] - 2026-01-29
 
 ### Added
@@ -74,7 +115,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Subject analyzer
 - Validation engine
 
-[Unreleased]: https://github.com/depatter/ai-research-project-generator/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/depatter/ai-research-project-generator/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/depatter/ai-research-project-generator/compare/v2.0.0...v2.2.0
 [2.0.0]: https://github.com/depatter/ai-research-project-generator/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/depatter/ai-research-project-generator/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/depatter/ai-research-project-generator/releases/tag/v0.1.0

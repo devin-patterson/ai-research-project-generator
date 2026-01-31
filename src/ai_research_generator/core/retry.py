@@ -60,7 +60,7 @@ class RetryConfig:
 
         if self.jitter:
             # Add random jitter between 0% and 25% of delay
-            jitter_amount = delay * random.uniform(0, 0.25)
+            jitter_amount = delay * random.uniform(0, 0.25)  # nosec: B311
             delay += jitter_amount
 
         return delay

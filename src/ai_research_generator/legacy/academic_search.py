@@ -707,9 +707,9 @@ class ArxivSearch(BaseAcademicSearch):
             response.raise_for_status()
 
             # Parse XML response
-            import xml.etree.ElementTree as ET
+            import xml.etree.ElementTree as ET  # nosec: B405
 
-            root = ET.fromstring(response.text)
+            root = ET.fromstring(response.text)  # nosec: B314
 
             # Define namespaces
             ns = {"atom": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}

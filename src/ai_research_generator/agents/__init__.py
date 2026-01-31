@@ -8,6 +8,6 @@ from .research_agents import (
 
 __all__ = [
     "TopicAnalyzerAgent",
-    "MethodologyAgent", 
+    "MethodologyAgent",
     "LiteratureSynthesizerAgent",
 ]

@@ -9,7 +9,7 @@ from .schemas.research import (
 
 __all__ = [
     "ResearchRequest",
-    "ResearchResponse", 
+    "ResearchResponse",
     "HealthResponse",
     "ErrorResponse",
 ]

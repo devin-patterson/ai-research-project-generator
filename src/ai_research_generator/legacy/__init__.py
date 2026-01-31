@@ -16,7 +16,7 @@ from .validation_engine import ValidationEngine
 __all__ = [
     "UnifiedAcademicSearch",
     "LLMProvider",
-    "LLMConfig", 
+    "LLMConfig",
     "ResearchLLMAssistant",
     "AIResearchEngine",
     "legacy_main",

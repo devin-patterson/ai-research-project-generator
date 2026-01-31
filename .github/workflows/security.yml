@@ -100,7 +100,7 @@ jobs:
         run: uv run bandit -r app/ llm_provider.py academic_search.py -c pyproject.toml -f json -o bandit-report.json
       
       - name: Upload Bandit Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: bandit-security-report
           path: bandit-report.json

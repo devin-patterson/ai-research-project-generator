@@ -18,6 +18,7 @@ from ..models.schemas.research import (
     ErrorResponse,
 )
 from ..services.research_service import ResearchService
+from ..templates import get_template_manager
 from datetime import datetime
 
 router = APIRouter()
@@ -222,3 +223,201 @@ async def list_research_types() -> dict:
             },
         ]
     }
+
+
+# =============================================================================
+# Template Endpoints
+# =============================================================================
+
+
+@router.get(
+    "/templates",
+    summary="List Research Templates",
+    description="List all available research templates with their parameters",
+)
+async def list_templates() -> dict:
+    """
+    List all available research templates.
+
+    Templates provide pre-configured research setups for common use cases
+    with specialized parameters for more valuable and robust research output.
+    """
+    manager = get_template_manager()
+    return {
+        "templates": manager.list_templates(),
+        "categories": manager.get_categories(),
+        "tags": manager.get_tags(),
+    }
+
+
+@router.get(
+    "/templates/{template_id}",
+    summary="Get Template Details",
+    description="Get detailed information about a specific template",
+)
+async def get_template(template_id: str) -> dict:
+    """
+    Get detailed information about a specific template.
+
+    Returns the template metadata and all available parameters.
+    """
+    manager = get_template_manager()
+    template = manager.get(template_id)
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Template '{template_id}' not found",
+        )
+    return {"template": template.to_dict(), "defaults": template.get_defaults()}
+
+
+@router.post(
+    "/templates/{template_id}/research",
+    response_model=ResearchResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate Research from Template",
+    description="Generate a research project using a template with custom parameters",
+    responses={
+        201: {"description": "Research project generated successfully"},
+        400: {"model": ErrorResponse, "description": "Invalid parameters"},
+        404: {"model": ErrorResponse, "description": "Template not found"},
+        500: {"model": ErrorResponse, "description": "Generation failed"},
+    },
+)
+async def generate_from_template(
+    template_id: str,
+    params: dict,
+    service: Annotated[ResearchService, Depends(get_research_service)],
+) -> ResearchResponse:
+    """
+    Generate a research project using a template.
+
+    **Example Request for Investment Template:**
+    ```json
+    {
+        "investment_goal": "long_term_growth",
+        "investment_horizon": 15,
+        "risk_tolerance": "moderate",
+        "asset_classes": ["stocks", "bonds", "etfs", "real_estate"],
+        "geographic_focus": ["us", "international_developed"],
+        "market_outlook": "moderately_bullish",
+        "inflation_expectation": "moderate",
+        "dividend_preference": "balanced",
+        "include_risk_metrics": true,
+        "paper_limit": 30
+    }
+    ```
+    """
+    manager = get_template_manager()
+
+    # Validate template exists
+    template = manager.get(template_id)
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Template '{template_id}' not found",
+        )
+
+    # Validate parameters
+    is_valid, errors = manager.validate_params(template_id, params)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid parameters: {'; '.join(errors)}",
+        )
+
+    try:
+        # Create research request from template
+        request_dict = manager.create_research_request(template_id, params)
+        request = ResearchRequest(**request_dict)
+
+        logger.info(f"Generating research from template '{template_id}': {request.topic[:50]}...")
+        response = await service.generate_project(request)
+        logger.info(f"Template research generated: {response.request_id}")
+        return response
+
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except LLMConnectionError as e:
+        logger.error(f"LLM connection error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"LLM service unavailable: {str(e)}",
+        )
+    except ResearchGenerationError as e:
+        logger.error(f"Research generation error: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}",
+        )
+
+
+@router.post(
+    "/templates/{template_id}/validate",
+    summary="Validate Template Parameters",
+    description="Validate parameters for a template without generating research",
+)
+async def validate_template_params(template_id: str, params: dict) -> dict:
+    """
+    Validate parameters for a template.
+
+    Returns validation status and any errors found.
+    """
+    manager = get_template_manager()
+
+    template = manager.get(template_id)
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Template '{template_id}' not found",
+        )
+
+    is_valid, errors = manager.validate_params(template_id, params)
+    return {
+        "valid": is_valid,
+        "errors": errors,
+        "merged_params": {**template.get_defaults(), **params},
+    }
+
+
+@router.post(
+    "/templates/{template_id}/preview",
+    summary="Preview Research Request",
+    description="Preview the research request that would be generated from template parameters",
+)
+async def preview_template_request(template_id: str, params: dict) -> dict:
+    """
+    Preview the research request that would be generated.
+
+    Returns the topic, research question, and additional context
+    without actually generating the research.
+    """
+    manager = get_template_manager()
+
+    template = manager.get(template_id)
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Template '{template_id}' not found",
+        )
+
+    try:
+        request_dict = manager.create_research_request(template_id, params)
+        return {
+            "preview": {
+                "topic": request_dict["topic"],
+                "research_question": request_dict["research_question"],
+                "research_type": request_dict["research_type"],
+                "discipline": request_dict["discipline"],
+                "academic_level": request_dict["academic_level"],
+                "additional_context": request_dict["additional_context"],
+                "paper_limit": request_dict["paper_limit"],
+            },
+            "search_keywords": template.get_search_keywords(params),
+            "recommended_sources": template.get_recommended_sources(),
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

@@ -31,10 +31,10 @@ from src.ai_research_generator.legacy.academic_search import UnifiedAcademicSear
 async def ingest_economic_data(rag: RAGService) -> int:
     """Ingest economic data from government APIs."""
     logger.info("=== Ingesting Economic Data ===")
-    
+
     tool_config = ToolConfig()
     economic_tool = EconomicDataTool(tool_config, EconomicDataConfig())
-    
+
     try:
         report = await economic_tool.execute(
             include_gdp=True,
@@ -45,7 +45,7 @@ async def ingest_economic_data(rag: RAGService) -> int:
             include_debt=True,
             limit=50,
         )
-        
+
         count = 0
         for ind in report.indicators:
             text = (
@@ -66,10 +66,10 @@ async def ingest_economic_data(rag: RAGService) -> int:
                 },
             )
             count += 1
-        
+
         logger.info(f"Ingested {count} economic indicators")
         return count
-        
+
     except Exception as e:
         logger.error(f"Economic data ingestion failed: {e}")
         return 0
@@ -78,9 +78,9 @@ async def ingest_economic_data(rag: RAGService) -> int:
 async def ingest_academic_papers(rag: RAGService, topics: list[str]) -> int:
     """Ingest academic papers for given topics."""
     logger.info("=== Ingesting Academic Papers ===")
-    
+
     academic_search = UnifiedAcademicSearch()
-    
+
     total_count = 0
     for topic in topics:
         logger.info(f"Searching papers for: {topic}")
@@ -91,7 +91,7 @@ async def ingest_academic_papers(rag: RAGService, topics: list[str]) -> int:
                 year_range=(2020, 2026),
                 sources=["openalex", "crossref"],
             )
-            
+
             for paper in papers:
                 authors_str = ", ".join(paper.authors[:3]) if paper.authors else "Unknown"
                 text = (
@@ -114,12 +114,12 @@ async def ingest_academic_papers(rag: RAGService, topics: list[str]) -> int:
                     },
                 )
                 total_count += 1
-            
+
             logger.info(f"Ingested {len(papers)} papers for '{topic}'")
-            
+
         except Exception as e:
             logger.warning(f"Paper search failed for '{topic}': {e}")
-    
+
     academic_search.close()
     logger.info(f"Total papers ingested: {total_count}")
     return total_count
@@ -128,10 +128,10 @@ async def ingest_academic_papers(rag: RAGService, topics: list[str]) -> int:
 async def ingest_current_events(rag: RAGService, topics: list[str]) -> int:
     """Ingest current events for given topics."""
     logger.info("=== Ingesting Current Events ===")
-    
+
     tool_config = ToolConfig()
     events_tool = CurrentEventsTool(tool_config, CurrentEventsConfig())
-    
+
     total_count = 0
     for topic in topics:
         logger.info(f"Fetching events for: {topic}")
@@ -140,7 +140,7 @@ async def ingest_current_events(rag: RAGService, topics: list[str]) -> int:
                 topic=topic,
                 time_range_days=30,
             )
-            
+
             # Ingest events
             for event in analysis.major_events[:10]:
                 text = (
@@ -158,7 +158,7 @@ async def ingest_current_events(rag: RAGService, topics: list[str]) -> int:
                     },
                 )
                 total_count += 1
-            
+
             # Ingest market conditions
             for mc in analysis.market_conditions:
                 text = (
@@ -176,12 +176,12 @@ async def ingest_current_events(rag: RAGService, topics: list[str]) -> int:
                     },
                 )
                 total_count += 1
-            
+
             logger.info(f"Ingested events for '{topic}'")
-            
+
         except Exception as e:
             logger.warning(f"Events fetch failed for '{topic}': {e}")
-    
+
     logger.info(f"Total events/conditions ingested: {total_count}")
     return total_count
 
@@ -209,41 +209,41 @@ async def main():
         ],
         help="Topics to search for papers and events",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Default to all if nothing specified
     if not (args.economic or args.papers or args.events or args.all):
         args.all = True
-    
+
     # Initialize RAG service
     logger.info("Initializing RAG service...")
     rag_config = RAGConfig()
     rag = RAGService(rag_config)
-    
+
     if not rag.is_available:
         logger.error("RAG service not available. Check Ollama and ChromaDB.")
         sys.exit(1)
-    
+
     # Show initial stats
     stats = rag.get_collection_stats()
     logger.info(f"Initial collection stats: {stats}")
-    
+
     total_ingested = 0
-    
+
     # Run ingestion
     if args.all or args.economic:
         count = await ingest_economic_data(rag)
         total_ingested += count
-    
+
     if args.all or args.papers:
         count = await ingest_academic_papers(rag, args.topics)
         total_ingested += count
-    
+
     if args.all or args.events:
         count = await ingest_current_events(rag, args.topics[:5])  # Limit events topics
         total_ingested += count
-    
+
     # Show final stats
     stats = rag.get_collection_stats()
     logger.info("=== Ingestion Complete ===")

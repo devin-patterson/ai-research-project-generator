@@ -295,7 +295,10 @@ class TestEconomicDataConfig:
 
         assert config.fred_base_url == "https://api.stlouisfed.org/fred"
         assert config.bls_base_url == "https://api.bls.gov/publicAPI/v2"
-        assert config.treasury_base_url == "https://api.fiscaldata.treasury.gov/services/api/fiscal_service"
+        assert (
+            config.treasury_base_url
+            == "https://api.fiscaldata.treasury.gov/services/api/fiscal_service"
+        )
         assert config.http_timeout == 30.0
 
     def test_custom_api_keys(self):

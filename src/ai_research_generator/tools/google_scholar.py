@@ -236,8 +236,14 @@ class GoogleScholarTool:
                 if include_citations:
                     try:
                         pub = scholarly.fill(pub)
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        logger.warning(
+                            "Failed to enrich Google Scholar publication with citations via scholarly: {error}. "
+                            "Proceeding with partial data. Publication: {pub}",
+                            error=exc,
+                            pub=pub,
+                        )
+                        # Best-effort enrichment; continue without filled citation details
 
                 bib = pub.get("bib", {})
                 results.append(

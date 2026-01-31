@@ -52,7 +52,13 @@ ai-research-project-generator/
 │   ├── agents/                       # PydanticAI agents
 │   │   └── research_agents.py      # Type-safe agents
 │   ├── workflows/                    # LangGraph workflows
-│   │   └── research_workflow.py     # Stateful workflows
+│   │   ├── research_workflow.py     # Basic stateful workflows
+│   │   ├── multi_stage_workflow.py  # Multi-stage research (NEW)
+│   │   └── agents.py              # PydanticAI agent definitions
+│   ├── tools/                        # Research Tools (NEW v2.2)
+│   │   ├── research_tools.py      # Core research tools
+│   │   ├── google_scholar.py      # Google Scholar integration
+│   │   └── citation_manager.py    # Citation management
 │   ├── optimization/                  # DSPy optimization
 │   │   └── dspy_modules.py          # Optimized modules
 │   └── legacy/                        # Legacy compatibility
@@ -186,6 +192,39 @@ def create_research_graph() -> StateGraph:
 - **Purpose**: Stateful workflow orchestration
 - **Benefits**: Checkpointing, error recovery, parallel processing
 - **Usage**: Complete research generation workflows
+
+### Multi-Stage Workflow (v2.2)
+
+- **Location**: `src/ai_research_generator/workflows/multi_stage_workflow.py`
+- **Purpose**: Advanced 6-stage research workflow
+- **Stages**:
+  1. **Discovery**: Topic analysis, scope definition, search strategy
+  2. **Collection**: Parallel multi-source data gathering
+  3. **Analysis**: Theme extraction, methodology analysis
+  4. **Verification**: Fact checking, source credibility (optional)
+  5. **Synthesis**: Knowledge integration, gap identification
+  6. **Report**: Comprehensive report with citations
+- **Benefits**: Configurable stages, progress tracking, quality metrics
+
+### Research Tools (v2.2)
+
+- **Location**: `src/ai_research_generator/tools/`
+- **Purpose**: LangGraph-compatible research tools
+- **Tools**:
+  - `WebSearchTool`: Web search via Serper, Tavily, DuckDuckGo
+  - `AcademicSearchTool`: Multi-database academic search
+  - `GoogleScholarTool`: Google Scholar integration
+  - `KnowledgeSynthesisTool`: LLM-powered synthesis
+  - `FactVerificationTool`: Claim verification
+  - `ResearchToolkit`: Unified interface
+- **Pattern**: `@tool` decorators for LangGraph compatibility
+
+### Citation Management (v2.2)
+
+- **Location**: `src/ai_research_generator/tools/citation_manager.py`
+- **Purpose**: Academic citation formatting and management
+- **Styles**: BibTeX, APA, APA7, MLA, MLA9, Chicago, IEEE, Harvard, Vancouver
+- **Features**: In-text citations, bibliography export, citation key generation
 
 ### DSPy Integration
 
@@ -1012,6 +1051,16 @@ async def research_error_handler(request: Request, exc: ResearchGenerationError)
 6. ✅ OpenAPI documentation
 7. ✅ Custom exception hierarchy
 8. ✅ Environment-based configuration
+
+### Completed in v2.2:
+1. ✅ Multi-stage research workflows with LangGraph
+2. ✅ Google Scholar integration
+3. ✅ Citation management (10 styles: BibTeX, APA, MLA, Chicago, IEEE, etc.)
+4. ✅ Research tools module with LangGraph-compatible @tool decorators
+5. ✅ Direct research generation using LLM knowledge
+6. ✅ Web search tool (Serper, Tavily, DuckDuckGo)
+7. ✅ Knowledge synthesis tool
+8. ✅ Fact verification tool
 
 ---
 

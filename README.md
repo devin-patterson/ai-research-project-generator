@@ -21,6 +21,21 @@ A comprehensive solution for generating robust research projects using AI. This 
 - **OpenAlex**: Free, comprehensive scholarly database
 - **CrossRef**: DOI and metadata for 140M+ records
 - **arXiv**: Preprints in physics, math, CS, and more
+- **Google Scholar**: Comprehensive academic search via scholarly library
+
+### 🔄 Multi-Stage Research Workflows
+- **Discovery Stage**: Topic analysis, scope definition, search strategy
+- **Collection Stage**: Parallel multi-source data gathering
+- **Analysis Stage**: Theme extraction, methodology analysis
+- **Verification Stage**: Fact checking, source credibility assessment
+- **Synthesis Stage**: Knowledge integration, gap identification
+- **Report Stage**: Comprehensive report with citations
+
+### 📝 Citation Management
+- **10 Citation Styles**: BibTeX, APA, APA7, MLA, MLA9, Chicago, IEEE, Harvard, Vancouver
+- **In-text Citations**: Automatic generation for all styles
+- **Bibliography Export**: Formatted reference lists
+- **Citation Key Generation**: Automatic unique keys
 
 ### 🔬 Research Methodologies
 - Systematic Reviews (PRISMA 2020 compliant)

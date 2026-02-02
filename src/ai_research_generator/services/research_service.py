@@ -23,6 +23,8 @@ from ..models.schemas.research import (
     PaperSchema,
     PaperStatistics,
     ValidationReportSchema,
+    CollectedDataSummary,
+    ExtractedEntities,
 )
 
 # Import existing modules
@@ -46,6 +48,25 @@ from ..tools.research_tools import (
 )
 from ..tools.economic_data import EconomicDataTool, EconomicDataConfig
 from ..tools.current_events import CurrentEventsTool, CurrentEventsConfig
+from ..tools.news_aggregator import NewsAggregatorTool, NewsAggregatorConfig
+from ..tools.market_data import MarketDataTool, MarketDataConfig
+from ..tools.international_economic import (
+    IMFDataTool,
+    WorldBankExtendedTool,
+    InternationalEconomicConfig,
+)
+from ..tools.financial_markets import (
+    FinnhubTool,
+    FinancialMarketsConfig,
+)
+from ..tools.industry_data import (
+    SECEdgarTool,
+    IndustryDataConfig,
+)
+from ..tools.social_sentiment import (
+    SocialSentimentTool,
+    SocialSentimentConfig,
+)
 
 # RAG and Caching
 from ..rag import RAGService, RAGConfig
@@ -82,6 +103,15 @@ class ResearchService:
         self._current_events_tool: Optional[CurrentEventsTool] = None
         self._web_search_tool: Optional[WebSearchTool] = None
         self._knowledge_synth_tool: Optional[KnowledgeSynthesisTool] = None
+        self._news_aggregator: Optional[NewsAggregatorTool] = None
+        self._market_data_tool: Optional[MarketDataTool] = None
+
+        # New extended data tools
+        self._imf_tool: Optional[IMFDataTool] = None
+        self._world_bank_tool: Optional[WorldBankExtendedTool] = None
+        self._finnhub_tool: Optional[FinnhubTool] = None
+        self._sec_edgar_tool: Optional[SECEdgarTool] = None
+        self._social_sentiment_tool: Optional[SocialSentimentTool] = None
 
         # RAG and Caching services
         self._rag_service: Optional[RAGService] = None
@@ -166,9 +196,24 @@ class ResearchService:
         self._web_search_tool = WebSearchTool(tool_config)
         self._knowledge_synth_tool = KnowledgeSynthesisTool(tool_config)
 
+        # Initialize new data aggregation tools
+        self._news_aggregator = NewsAggregatorTool(NewsAggregatorConfig())
+        self._market_data_tool = MarketDataTool(MarketDataConfig())
+
+        # Initialize extended data tools (feature-flagged)
+        self._imf_tool = IMFDataTool(tool_config, InternationalEconomicConfig())
+        self._world_bank_tool = WorldBankExtendedTool(tool_config, InternationalEconomicConfig())
+        self._finnhub_tool = FinnhubTool(tool_config, FinancialMarketsConfig())
+        self._sec_edgar_tool = SECEdgarTool(tool_config, IndustryDataConfig())
+        self._social_sentiment_tool = SocialSentimentTool(tool_config, SocialSentimentConfig())
+
         logger.info("Research toolkit initialized")
         logger.info(
             f"Economic data sources available: {self._economic_tool.get_available_sources()}"
+        )
+        logger.info(f"News sources available: {self._news_aggregator.get_available_sources()}")
+        logger.info(
+            f"Market data sources available: {self._market_data_tool.get_available_sources()}"
         )
 
     def _init_rag_service(self) -> None:
@@ -303,6 +348,8 @@ class ResearchService:
                 base_project=base_project,
                 subject_analysis=subject_analysis,
                 validation_report=validation_report,
+                collected_data_summary=ai_content.get("collected_data_summary"),
+                extracted_entities=ai_content.get("extracted_entities"),
             )
 
             # Generate markdown export if requested
@@ -432,12 +479,13 @@ class ResearchService:
                 for paper in papers_dict[:10]:
                     authors = paper.get("authors") or []
                     authors_str = ", ".join(authors[:3]) if authors else "Unknown"
+                    abstract = paper.get("abstract") or "No abstract available"
                     text = (
                         f"Academic Paper: {paper['title']}\n"
                         f"Authors: {authors_str}\n"
-                        f"Year: {paper.get('year', 'N/A')}\n"
-                        f"Abstract: {paper.get('abstract', 'No abstract available')[:500]}\n"
-                        f"DOI: {paper.get('doi', 'N/A')}"
+                        f"Year: {paper.get('year') or 'N/A'}\n"
+                        f"Abstract: {abstract[:500]}\n"
+                        f"DOI: {paper.get('doi') or 'N/A'}"
                     )
                     self._rag_service.ingest_text(
                         text,
@@ -486,30 +534,149 @@ class ResearchService:
             sources={source: sources.count(source) for source in set(sources)},
         )
 
+    async def _extract_topic_entities(self, request: ResearchRequest) -> ExtractedEntities:
+        """
+        Use LLM to extract structured entities from the research topic.
+
+        This enables targeted data collection based on what's actually in the topic.
+        """
+        prompt = f"""Extract key entities from this research topic for data collection.
+
+TOPIC: {request.topic}
+RESEARCH QUESTION: {request.research_question}
+DISCIPLINE: {request.discipline}
+ADDITIONAL CONTEXT: {request.additional_context or "None provided"}
+
+Return a JSON object with these fields (use empty arrays if none found):
+{{
+    "companies": ["company names and stock tickers mentioned"],
+    "industries": ["industry sectors like healthcare, technology, finance"],
+    "geographic_regions": ["countries, states, cities mentioned"],
+    "time_periods": ["years, quarters, date ranges mentioned"],
+    "key_metrics": ["KPIs, metrics, measurements to track"],
+    "people": ["notable people mentioned"],
+    "keywords": ["key search terms for finding relevant data"]
+}}
+
+Be thorough - extract ALL relevant entities for comprehensive data collection."""
+
+        try:
+            response = self._llm_assistant.client.generate(
+                prompt,
+                system_prompt="You are an entity extraction specialist. Return ONLY valid JSON, no other text.",
+            )
+
+            import json
+            import re
+
+            # Extract JSON from response
+            content = response.content.strip()
+            # Try to find JSON in the response
+            json_match = re.search(r"\{[\s\S]*\}", content)
+            if json_match:
+                entities_dict = json.loads(json_match.group())
+            else:
+                entities_dict = json.loads(content)
+
+            return ExtractedEntities(
+                companies=entities_dict.get("companies", []),
+                industries=entities_dict.get("industries", []),
+                geographic_regions=entities_dict.get("geographic_regions", []),
+                time_periods=entities_dict.get("time_periods", []),
+                key_metrics=entities_dict.get("key_metrics", []),
+                people=entities_dict.get("people", []),
+                keywords=entities_dict.get("keywords", []),
+            )
+        except Exception as e:
+            logger.warning(f"Entity extraction failed: {e}, using fallback")
+            # Fallback: basic keyword extraction
+            topic_words = request.topic.split()
+            return ExtractedEntities(
+                companies=[w for w in topic_words if w[0].isupper() and len(w) > 2][:5],
+                industries=[request.discipline] if request.discipline else [],
+                geographic_regions=[],
+                time_periods=[],
+                key_metrics=[],
+                people=[],
+                keywords=topic_words[:10],
+            )
+
+    def _build_collected_data_summary(
+        self, collected_data: dict, collection_start_time: datetime
+    ) -> CollectedDataSummary:
+        """Build a summary of what data was collected from which sources."""
+        sources_queried = list(collected_data.keys())
+        sources_successful = []
+        sources_failed = []
+        total_data_points = 0
+
+        for source, data in collected_data.items():
+            if data.get("error"):
+                sources_failed.append(source)
+            else:
+                sources_successful.append(source)
+                # Count data points based on source type
+                if "indicators" in data:
+                    total_data_points += len(data["indicators"])
+                if "articles" in data:
+                    total_data_points += len(data["articles"])
+                if "events" in data:
+                    total_data_points += len(data["events"])
+                if "filings" in data:
+                    total_data_points += len(data["filings"])
+                if "quotes" in data:
+                    total_data_points += len(data["quotes"])
+                if "results" in data:
+                    total_data_points += len(data["results"])
+                if "posts" in data:
+                    total_data_points += len(data["posts"])
+
+        collection_duration = (datetime.now() - collection_start_time).total_seconds()
+
+        return CollectedDataSummary(
+            sources_queried=sources_queried,
+            sources_successful=sources_successful,
+            sources_failed=sources_failed,
+            data_points_collected=total_data_points,
+            collection_timestamp=datetime.now(),
+            cache_hits=0,  # TODO: track cache hits
+            collection_duration_seconds=collection_duration,
+        )
+
     async def _enhance_with_llm(self, request: ResearchRequest, papers: list) -> Tuple[dict, str]:
         """
         Enhance project with LLM-generated content.
 
         This method now follows a data-driven approach:
-        1. Plan what data/tools are needed based on the prompt
-        2. Execute tools to gather real data
-        3. Synthesize the real data into the final report
+        1. Extract entities from topic for targeted data collection
+        2. Plan what data/tools are needed based on the prompt
+        3. Execute tools to gather real data
+        4. Synthesize the real data into the final report
         """
         content = {}
         model_used = None
         collected_data = {}
+        collection_start_time = datetime.now()
 
         try:
-            # Step 1: Analyze topic to understand data needs
+            # Step 1: Extract entities from topic for targeted data collection
+            logger.info("Extracting entities from research topic...")
+            extracted_entities = await self._extract_topic_entities(request)
+            content["extracted_entities"] = extracted_entities
+            logger.info(
+                f"Extracted entities: companies={extracted_entities.companies}, industries={extracted_entities.industries}, regions={extracted_entities.geographic_regions}"
+            )
+
+            # Step 2: Analyze topic to understand data needs
             result = self._llm_assistant.analyze_topic(request.topic, request.discipline)
             content["topic_analysis"] = result["analysis"]
             model_used = result.get("model")
 
-            # Step 2: Plan and execute data collection based on topic
+            # Step 3: Plan and execute data collection based on topic
             logger.info("Planning data collection based on prompt analysis...")
             tool_plan = self._plan_tool_execution(request)
 
-            # Step 3: Execute planned tools to gather REAL data
+            # Step 4: Execute planned tools to gather REAL data
             if tool_plan.get("needs_economic_data") and self._economic_tool:
                 logger.info("Executing economic data collection...")
                 collected_data["economic"] = await self._collect_economic_data(request)
@@ -521,6 +688,49 @@ class ResearchService:
             if tool_plan.get("needs_web_search") and self._web_search_tool:
                 logger.info("Executing web search...")
                 collected_data["web_search"] = await self._collect_web_data(request)
+
+            # Collect news articles from multiple sources
+            if self._news_aggregator:
+                logger.info("Collecting news articles...")
+                collected_data["news"] = await self._collect_news_articles(request)
+
+            # Collect market data (for finance/economics topics)
+            if self._market_data_tool and request.discipline:
+                discipline_lower = request.discipline.lower()
+                if any(
+                    t in discipline_lower for t in ["finance", "economics", "business", "market"]
+                ):
+                    logger.info("Collecting market data...")
+                    collected_data["market"] = await self._collect_market_data(request)
+
+            # Collect international economic data (IMF, World Bank)
+            if self._imf_tool and self._imf_tool.is_available:
+                logger.info("Collecting IMF international economic data...")
+                collected_data["imf"] = await self._collect_imf_data(request)
+
+            if self._world_bank_tool and self._world_bank_tool.is_available:
+                logger.info("Collecting World Bank development indicators...")
+                collected_data["world_bank"] = await self._collect_world_bank_data(request)
+
+            # Collect financial market data (Finnhub - if API key available)
+            if self._finnhub_tool and self._finnhub_tool.is_available:
+                logger.info("Collecting Finnhub financial data...")
+                collected_data["finnhub"] = await self._collect_finnhub_data(request)
+
+            # Collect SEC filings for company research
+            if self._sec_edgar_tool and self._sec_edgar_tool.is_available:
+                # Only for business/finance topics or if company mentioned
+                if request.discipline and any(
+                    t in request.discipline.lower()
+                    for t in ["business", "finance", "economics", "management"]
+                ):
+                    logger.info("Collecting SEC EDGAR filings...")
+                    collected_data["sec_filings"] = await self._collect_sec_data(request)
+
+            # Collect social sentiment (Reddit/Twitter - if API keys available)
+            if self._social_sentiment_tool and self._social_sentiment_tool.is_available:
+                logger.info("Collecting social media sentiment...")
+                collected_data["social_sentiment"] = await self._collect_social_sentiment(request)
 
             # Step 4: Generate research questions
             questions = self._llm_assistant.generate_research_questions(
@@ -573,6 +783,11 @@ class ResearchService:
 
             # Store collected data in content for reference
             content["collected_data"] = collected_data
+
+            # Build collected data summary
+            content["collected_data_summary"] = self._build_collected_data_summary(
+                collected_data, collection_start_time
+            )
 
         except Exception as e:
             logger.error(f"LLM enhancement error: {e}")
@@ -854,6 +1069,303 @@ class ResearchService:
             logger.warning(f"Web search failed: {e}")
             return {"error": str(e), "results": []}
 
+    async def _collect_news_articles(self, request: ResearchRequest) -> dict:
+        """Collect news articles from multiple sources."""
+        cache_key = f"news_{request.topic[:50]}"
+
+        # Check cache first
+        if self._data_cache:
+            cached = self._data_cache.get(cache_key)
+            if cached:
+                logger.info("Using cached news data")
+                return cached
+
+        if not self._news_aggregator:
+            return {"error": "News aggregator not initialized", "articles": []}
+
+        try:
+            # Determine category based on discipline
+            category = None
+            if request.discipline:
+                discipline_lower = request.discipline.lower()
+                if any(t in discipline_lower for t in ["finance", "economics", "business"]):
+                    category = "business"
+                elif any(t in discipline_lower for t in ["health", "medical", "healthcare"]):
+                    category = "health"
+                elif any(t in discipline_lower for t in ["tech", "computer", "software"]):
+                    category = "technology"
+
+            news_result = await self._news_aggregator.aggregate_news(
+                query=request.topic,
+                category=category,
+                days_back=30,
+                max_results=15,
+            )
+
+            result = {
+                "query": news_result.query,
+                "total_count": news_result.total_count,
+                "sources_used": news_result.sources_used,
+                "articles": [
+                    {
+                        "title": a.title,
+                        "description": a.description,
+                        "source": a.source,
+                        "url": a.url,
+                        "published_at": a.published_at,
+                        "category": a.category,
+                        "provider": a.provider,
+                    }
+                    for a in news_result.articles[:15]
+                ],
+            }
+
+            # Cache the result
+            if self._data_cache:
+                self._data_cache.set(cache_key, result, data_type="current_events")
+                logger.info("Cached news data")
+
+            # Ingest into RAG
+            if self._rag_service and self._rag_service.is_available:
+                for article in result["articles"][:10]:
+                    text = f"News Article: {article['title']}\nSource: {article['source']}\nDate: {article['published_at']}\nSummary: {article['description']}"
+                    self._rag_service.ingest_text(
+                        text,
+                        metadata={
+                            "type": "news_article",
+                            "source": article["source"],
+                            "provider": article["provider"],
+                        },
+                        collection="current_events",
+                    )
+                logger.info(f"Ingested {min(len(result['articles']), 10)} news articles into RAG")
+
+            return result
+        except Exception as e:
+            logger.warning(f"News collection failed: {e}")
+            return {"error": str(e), "articles": []}
+
+    async def _collect_market_data(self, request: ResearchRequest) -> dict:
+        """Collect market and financial data."""
+        cache_key = "market_data_overview"
+
+        # Check cache first
+        if self._data_cache:
+            cached = self._data_cache.get(cache_key)
+            if cached:
+                logger.info("Using cached market data")
+                return cached
+
+        if not self._market_data_tool:
+            return {"error": "Market data tool not initialized", "quotes": [], "indicators": []}
+
+        try:
+            market_result = await self._market_data_tool.get_market_overview(
+                include_indicators=True,
+                country="US",
+            )
+
+            result = {
+                "timestamp": market_result.timestamp,
+                "sources_used": market_result.sources_used,
+                "market_summary": market_result.market_summary,
+                "quotes": [
+                    {
+                        "symbol": q.symbol,
+                        "name": q.name,
+                        "price": q.price,
+                        "change_percent": q.change_percent,
+                        "volume": q.volume,
+                    }
+                    for q in market_result.quotes
+                ],
+                "indicators": [
+                    {
+                        "name": i.name,
+                        "value": i.value,
+                        "year": i.year,
+                        "country": i.country,
+                    }
+                    for i in market_result.indicators
+                ],
+            }
+
+            # Cache the result
+            if self._data_cache:
+                self._data_cache.set(cache_key, result, data_type="economic_data")
+                logger.info("Cached market data")
+
+            # Ingest into RAG
+            if self._rag_service and self._rag_service.is_available:
+                # Ingest market quotes
+                for quote in result["quotes"]:
+                    text = f"Market Quote: {quote['symbol']} ({quote['name']})\nPrice: ${quote['price']:.2f}\nChange: {quote['change_percent']:.2f}%"
+                    self._rag_service.ingest_text(
+                        text,
+                        metadata={"type": "market_quote", "symbol": quote["symbol"]},
+                        collection="economic_data",
+                    )
+                # Ingest economic indicators
+                for ind in result["indicators"]:
+                    text = f"World Bank Indicator: {ind['name']}\nValue: {ind['value']}\nYear: {ind['year']}\nCountry: {ind['country']}"
+                    self._rag_service.ingest_text(
+                        text,
+                        metadata={"type": "world_bank_indicator", "name": ind["name"]},
+                        collection="economic_data",
+                    )
+                logger.info("Ingested market data into RAG")
+
+            return result
+        except Exception as e:
+            logger.warning(f"Market data collection failed: {e}")
+            return {"error": str(e), "quotes": [], "indicators": []}
+
+    async def _collect_imf_data(self, request: ResearchRequest) -> dict:
+        """Collect IMF international economic data."""
+        if not self._imf_tool:
+            return {"error": "IMF tool not initialized", "indicators": []}
+
+        try:
+            result = await self._imf_tool.execute(
+                indicators=["NGDP_RPCH", "PCPIPCH", "LUR"],
+                countries=["USA", "CHN", "DEU", "JPN", "GBR"],
+                start_year=2022,
+            )
+            return {
+                "source": "IMF",
+                "indicators": [
+                    {
+                        "name": ind.name,
+                        "country": ind.country,
+                        "value": ind.value,
+                        "year": ind.year,
+                    }
+                    for ind in result.indicators[:20]
+                ],
+            }
+        except Exception as e:
+            logger.warning(f"IMF data collection failed: {e}")
+            return {"error": str(e), "indicators": []}
+
+    async def _collect_world_bank_data(self, request: ResearchRequest) -> dict:
+        """Collect World Bank development indicators."""
+        if not self._world_bank_tool:
+            return {"error": "World Bank tool not initialized", "indicators": []}
+
+        try:
+            result = await self._world_bank_tool.execute(
+                category="economic",
+                countries=["US", "CN", "DE", "JP", "GB"],
+                start_year=2020,
+            )
+            return {
+                "source": "World Bank",
+                "indicators": [
+                    {
+                        "name": ind.name,
+                        "country": ind.country,
+                        "value": ind.value,
+                        "year": ind.year,
+                    }
+                    for ind in result.indicators[:20]
+                ],
+            }
+        except Exception as e:
+            logger.warning(f"World Bank data collection failed: {e}")
+            return {"error": str(e), "indicators": []}
+
+    async def _collect_finnhub_data(self, request: ResearchRequest) -> dict:
+        """Collect Finnhub financial market data."""
+        if not self._finnhub_tool or not self._finnhub_tool.is_available:
+            return {"error": "Finnhub not available", "quotes": [], "news": []}
+
+        try:
+            result = await self._finnhub_tool.execute(
+                symbols=["AAPL", "MSFT", "GOOGL", "AMZN"],
+                include_news=True,
+                include_profiles=False,
+                include_financials=True,
+            )
+            return {
+                "source": "Finnhub",
+                "quotes": [
+                    {
+                        "symbol": q.symbol,
+                        "price": q.price,
+                        "change_percent": q.change_percent,
+                    }
+                    for q in result.quotes
+                ],
+                "news": [{"headline": n.headline, "source": n.source} for n in result.news[:10]],
+            }
+        except Exception as e:
+            logger.warning(f"Finnhub data collection failed: {e}")
+            return {"error": str(e), "quotes": [], "news": []}
+
+    async def _collect_sec_data(self, request: ResearchRequest) -> dict:
+        """Collect SEC EDGAR filings."""
+        if not self._sec_edgar_tool:
+            return {"error": "SEC EDGAR tool not initialized", "filings": []}
+
+        try:
+            # Extract company names from topic
+            topic_words = request.topic.split()
+            company = None
+            for word in topic_words:
+                if word[0].isupper() and len(word) > 2:
+                    company = word
+                    break
+
+            if not company:
+                return {"filings": []}
+
+            result = await self._sec_edgar_tool.execute(
+                company=company,
+                form_types=["10-K", "10-Q", "8-K"],
+                limit=5,
+            )
+            return {
+                "source": "SEC EDGAR",
+                "filings": [
+                    {
+                        "company": f.company_name,
+                        "form_type": f.form_type,
+                        "filing_date": f.filing_date,
+                        "url": f.url,
+                    }
+                    for f in result.filings
+                ],
+            }
+        except Exception as e:
+            logger.warning(f"SEC EDGAR data collection failed: {e}")
+            return {"error": str(e), "filings": []}
+
+    async def _collect_social_sentiment(self, request: ResearchRequest) -> dict:
+        """Collect social media sentiment analysis."""
+        if not self._social_sentiment_tool or not self._social_sentiment_tool.is_available:
+            return {"error": "Social sentiment not available", "posts": []}
+
+        try:
+            result = await self._social_sentiment_tool.execute(
+                query=request.topic,
+                limit=20,
+            )
+            sentiment = result.sentiment
+            return {
+                "source": ", ".join(result.sources_used),
+                "overall_sentiment": sentiment.overall_sentiment if sentiment else "unknown",
+                "sentiment_score": sentiment.sentiment_score if sentiment else 0,
+                "positive_count": sentiment.positive_count if sentiment else 0,
+                "negative_count": sentiment.negative_count if sentiment else 0,
+                "sample_posts": [
+                    {"title": p.title or p.content[:100], "source": p.source}
+                    for p in result.posts[:5]
+                ],
+            }
+        except Exception as e:
+            logger.warning(f"Social sentiment collection failed: {e}")
+            return {"error": str(e), "posts": []}
+
     async def _synthesize_collected_data(
         self, request: ResearchRequest, collected_data: dict, papers: list
     ) -> str:
@@ -901,6 +1413,89 @@ class ResearchService:
             for r in collected_data["web_search"].get("results", [])[:5]:
                 context_parts.append(f"- {r['title']}: {r['snippet'][:200]}...")
 
+        # Add news articles context
+        if "news" in collected_data and collected_data["news"].get("articles"):
+            news = collected_data["news"]
+            context_parts.append(
+                f"\n## Recent News ({news.get('total_count', 0)} articles from {', '.join(news.get('sources_used', []))})"
+            )
+            for article in news.get("articles", [])[:10]:
+                context_parts.append(f"- [{article['source']}] {article['title']}")
+                if article.get("description"):
+                    context_parts.append(f"  Summary: {article['description'][:150]}...")
+
+        # Add market data context
+        if "market" in collected_data:
+            market = collected_data["market"]
+            if market.get("quotes"):
+                context_parts.append("\n## Market Data (Real-Time)")
+                summary = market.get("market_summary", {})
+                if summary:
+                    context_parts.append(f"Market Trend: {summary.get('market_trend', 'N/A')}")
+                    context_parts.append(f"Volatility: {summary.get('volatility', 'N/A')}")
+                context_parts.append("\nMajor Indices:")
+                for q in market.get("quotes", []):
+                    context_parts.append(
+                        f"- {q['symbol']} ({q['name']}): ${q['price']:.2f} ({q['change_percent']:+.2f}%)"
+                    )
+
+            if market.get("indicators"):
+                context_parts.append("\nWorld Bank Economic Indicators:")
+                for ind in market.get("indicators", []):
+                    context_parts.append(f"- {ind['name']}: {ind['value']:.2f} ({ind['year']})")
+
+        # Add IMF data context
+        if "imf" in collected_data and collected_data["imf"].get("indicators"):
+            context_parts.append("\n## IMF International Economic Data")
+            for ind in collected_data["imf"].get("indicators", [])[:10]:
+                context_parts.append(
+                    f"- {ind['country']} {ind['name']}: {ind['value']:.2f}% ({ind['year']})"
+                )
+
+        # Add World Bank data context
+        if "world_bank" in collected_data and collected_data["world_bank"].get("indicators"):
+            context_parts.append("\n## World Bank Development Indicators")
+            for ind in collected_data["world_bank"].get("indicators", [])[:10]:
+                context_parts.append(
+                    f"- {ind['country']} {ind['name']}: {ind['value']:.2f} ({ind['year']})"
+                )
+
+        # Add Finnhub financial data context
+        if "finnhub" in collected_data:
+            finnhub = collected_data["finnhub"]
+            if finnhub.get("quotes"):
+                context_parts.append("\n## Finnhub Financial Market Data")
+                for q in finnhub.get("quotes", []):
+                    context_parts.append(
+                        f"- {q['symbol']}: ${q['price']:.2f} ({q['change_percent']:+.2f}%)"
+                    )
+            if finnhub.get("news"):
+                context_parts.append("\nMarket News:")
+                for n in finnhub.get("news", [])[:5]:
+                    context_parts.append(f"- [{n['source']}] {n['headline']}")
+
+        # Add SEC filings context
+        if "sec_filings" in collected_data and collected_data["sec_filings"].get("filings"):
+            context_parts.append("\n## SEC EDGAR Filings")
+            for f in collected_data["sec_filings"].get("filings", []):
+                context_parts.append(f"- {f['company']} {f['form_type']} ({f['filing_date']})")
+
+        # Add social sentiment context
+        if "social_sentiment" in collected_data:
+            sentiment = collected_data["social_sentiment"]
+            if sentiment.get("overall_sentiment"):
+                context_parts.append("\n## Social Media Sentiment Analysis")
+                context_parts.append(f"Overall Sentiment: {sentiment['overall_sentiment']}")
+                context_parts.append(f"Sentiment Score: {sentiment.get('sentiment_score', 0):.2f}")
+                context_parts.append(
+                    f"Positive: {sentiment.get('positive_count', 0)}, "
+                    f"Negative: {sentiment.get('negative_count', 0)}"
+                )
+                if sentiment.get("sample_posts"):
+                    context_parts.append("Sample Posts:")
+                    for p in sentiment.get("sample_posts", [])[:3]:
+                        context_parts.append(f"- [{p['source']}] {p['title'][:80]}...")
+
         # Add academic papers context
         if papers:
             context_parts.append(f"\n## Academic Research ({len(papers)} papers found)")
@@ -909,6 +1504,14 @@ class ResearchService:
 
         collected_context = "\n".join(context_parts)
 
+        # Build list of data sources used for citation
+        sources_used = [k for k, v in collected_data.items() if v and not v.get("error")]
+
+        # Get discipline-specific system prompt and instructions
+        system_prompt, discipline_instructions = self._get_discipline_specific_prompts(
+            request.discipline
+        )
+
         # Generate synthesis using LLM with real data
         prompt = f"""Based on the following REAL DATA collected from multiple sources, provide a comprehensive research report answering the user's question.
 
@@ -916,24 +1519,150 @@ USER'S RESEARCH QUESTION: {request.research_question}
 
 TOPIC: {request.topic}
 
+DISCIPLINE: {request.discipline}
+
+DATA SOURCES USED: {", ".join(sources_used)}
+
 COLLECTED DATA:
 {collected_context}
 
-Generate a detailed report that:
-1. Directly answers the research question using the collected data
-2. Provides specific recommendations based on the real data
-3. Cites the data sources where applicable
-4. Identifies any limitations or gaps in the available data
-5. Provides actionable next steps
+{discipline_instructions}
+
+IMPORTANT CITATION REQUIREMENTS:
+- Always cite specific data sources when making claims (e.g., "According to IMF data...", "SEC filings show...")
+- Include specific numbers, percentages, and dates from the collected data
+- Clearly distinguish between data-backed findings and analytical conclusions
+- Note any limitations or gaps in the available data
 
 Format the report with clear sections and be specific - use actual numbers and data points from the collected information."""
 
         response = self._llm_assistant.client.generate(
             prompt,
-            system_prompt="You are a research analyst. Synthesize the provided real-time data into actionable insights. Always cite specific data points from the collected information.",
+            system_prompt=system_prompt,
         )
 
         return response.content
+
+    def _get_discipline_specific_prompts(self, discipline: str) -> tuple[str, str]:
+        """
+        Get discipline-specific system prompt and instructions for report synthesis.
+
+        Returns:
+            Tuple of (system_prompt, discipline_instructions)
+        """
+        discipline_lower = discipline.lower() if discipline else "general"
+
+        # Discipline-specific system prompts
+        system_prompts = {
+            "finance": """You are a CFA-certified senior financial analyst with expertise in investment research, 
+portfolio management, and market analysis. You provide rigorous, data-driven analysis with specific 
+attention to risk factors, valuation metrics, and market conditions. Always cite specific data points 
+and provide actionable investment insights with clear rationale.""",
+            "healthcare": """You are a senior healthcare industry consultant with expertise in revenue cycle 
+management, healthcare operations, regulatory compliance, and health IT. You understand CMS regulations, 
+payer dynamics, and operational best practices. Provide actionable recommendations for healthcare executives 
+with specific metrics, benchmarks, and implementation timelines.""",
+            "economics": """You are a senior economist with expertise in macroeconomic analysis, monetary policy, 
+and economic forecasting. You analyze economic indicators, policy impacts, and market dynamics with 
+rigorous methodology. Provide data-driven insights with clear causal reasoning and uncertainty quantification.""",
+            "technology": """You are a senior technology analyst with expertise in emerging technologies, 
+market dynamics, and competitive analysis. You understand technical architectures, adoption curves, 
+and business model implications. Provide strategic insights with specific market data and trend analysis.""",
+            "business": """You are a senior management consultant with expertise in corporate strategy, 
+operations, and organizational effectiveness. You provide actionable recommendations backed by 
+industry benchmarks, competitive analysis, and best practices. Focus on implementation feasibility 
+and measurable outcomes.""",
+            "general": """You are a research analyst specializing in synthesizing data from multiple sources 
+into actionable insights. You provide comprehensive, balanced analysis with clear citations and 
+evidence-based recommendations. Always distinguish between data-backed findings and analytical conclusions.""",
+        }
+
+        # Discipline-specific report instructions
+        discipline_instructions = {
+            "finance": """Generate a detailed financial analysis report with these sections:
+1. **Executive Summary** - Key findings and investment thesis
+2. **Market Analysis** - Current market conditions and trends
+3. **Fundamental Analysis** - Key financial metrics and ratios
+4. **Risk Assessment** - Market, regulatory, and company-specific risks
+5. **Valuation Analysis** - Fair value estimates with methodology
+6. **Recommendations** - Specific actionable recommendations with rationale
+7. **Limitations** - Data gaps and analytical caveats""",
+            "healthcare": """Generate a detailed healthcare industry report with these sections:
+1. **Executive Summary** - Key findings and strategic recommendations
+2. **Regulatory Landscape** - Current and upcoming regulatory changes
+3. **Market Analysis** - Industry trends, payer dynamics, reimbursement changes
+4. **Operational Analysis** - Performance metrics, benchmarks, best practices
+5. **Staffing & Resources** - FTE recommendations, skill requirements, training needs
+6. **Technology & Innovation** - Relevant technology trends and adoption recommendations
+7. **Implementation Roadmap** - Prioritized action items with timelines
+8. **Risk Mitigation** - Key risks and mitigation strategies
+9. **Limitations** - Data gaps and areas requiring further research""",
+            "economics": """Generate a detailed economic analysis report with these sections:
+1. **Executive Summary** - Key economic findings and outlook
+2. **Macroeconomic Indicators** - GDP, inflation, employment analysis
+3. **Monetary & Fiscal Policy** - Policy impacts and expectations
+4. **Sector Analysis** - Industry-specific economic trends
+5. **Forecasts** - Economic projections with confidence intervals
+6. **Risk Factors** - Economic risks and scenarios
+7. **Policy Implications** - Recommendations for stakeholders
+8. **Limitations** - Data limitations and forecast uncertainty""",
+            "technology": """Generate a detailed technology analysis report with these sections:
+1. **Executive Summary** - Key findings and strategic implications
+2. **Technology Landscape** - Current state and emerging trends
+3. **Market Analysis** - Market size, growth, competitive dynamics
+4. **Adoption Analysis** - Adoption curves, barriers, enablers
+5. **Competitive Analysis** - Key players and positioning
+6. **Strategic Recommendations** - Actionable technology strategy
+7. **Implementation Considerations** - Technical and organizational factors
+8. **Limitations** - Data gaps and analytical caveats""",
+            "business": """Generate a detailed business analysis report with these sections:
+1. **Executive Summary** - Key findings and strategic recommendations
+2. **Industry Analysis** - Market dynamics and competitive landscape
+3. **Operational Analysis** - Performance metrics and benchmarks
+4. **Strategic Options** - Alternative approaches with pros/cons
+5. **Financial Impact** - ROI analysis and resource requirements
+6. **Implementation Plan** - Prioritized action items with timelines
+7. **Risk Assessment** - Key risks and mitigation strategies
+8. **Limitations** - Data gaps and areas for further analysis""",
+            "general": """Generate a detailed research report with these sections:
+1. **Executive Summary** - Key findings and recommendations
+2. **Background & Context** - Relevant context and scope
+3. **Data Analysis** - Analysis of collected data with citations
+4. **Key Findings** - Main insights from the research
+5. **Recommendations** - Actionable recommendations with rationale
+6. **Limitations** - Data gaps and analytical caveats
+7. **Next Steps** - Suggested follow-up actions""",
+        }
+
+        # Match discipline to closest category
+        matched_discipline = "general"
+        for key in system_prompts.keys():
+            if key in discipline_lower or discipline_lower in key:
+                matched_discipline = key
+                break
+
+        # Special handling for common variations
+        if any(
+            term in discipline_lower
+            for term in ["revenue", "medical", "hospital", "clinical", "pharma"]
+        ):
+            matched_discipline = "healthcare"
+        elif any(
+            term in discipline_lower
+            for term in ["invest", "stock", "market", "trading", "portfolio"]
+        ):
+            matched_discipline = "finance"
+        elif any(
+            term in discipline_lower for term in ["software", "ai", "data", "digital", "cyber"]
+        ):
+            matched_discipline = "technology"
+        elif any(
+            term in discipline_lower
+            for term in ["management", "strategy", "operations", "consulting"]
+        ):
+            matched_discipline = "business"
+
+        return system_prompts[matched_discipline], discipline_instructions[matched_discipline]
 
     def _export_markdown(self, response: ResearchResponse) -> str:
         """Export response as markdown"""
@@ -1021,6 +1750,41 @@ Year: {paper.year or "N/A"} | Citations: {paper.citation_count or "N/A"} | Sourc
 ---
 
 """
+
+        # Add data collection summary if available
+        if response.collected_data_summary:
+            summary = response.collected_data_summary
+            md += f"""## 📊 Data Collection Summary
+
+**Sources Queried**: {len(summary.sources_queried)}  
+**Sources Successful**: {len(summary.sources_successful)} ({", ".join(summary.sources_successful) if summary.sources_successful else "None"})  
+**Sources Failed**: {len(summary.sources_failed)} ({", ".join(summary.sources_failed) if summary.sources_failed else "None"})  
+**Data Points Collected**: {summary.data_points_collected}  
+**Collection Time**: {summary.collection_duration_seconds:.2f}s  
+
+---
+
+"""
+
+        # Add extracted entities if available
+        if response.extracted_entities:
+            entities = response.extracted_entities
+            md += """## 🔍 Extracted Entities
+
+"""
+            if entities.companies:
+                md += f"**Companies**: {', '.join(entities.companies)}\n"
+            if entities.industries:
+                md += f"**Industries**: {', '.join(entities.industries)}\n"
+            if entities.geographic_regions:
+                md += f"**Geographic Regions**: {', '.join(entities.geographic_regions)}\n"
+            if entities.time_periods:
+                md += f"**Time Periods**: {', '.join(entities.time_periods)}\n"
+            if entities.key_metrics:
+                md += f"**Key Metrics**: {', '.join(entities.key_metrics)}\n"
+            if entities.keywords:
+                md += f"**Keywords**: {', '.join(entities.keywords[:10])}\n"
+            md += "\n---\n\n"
 
         md += f"""## ✅ Validation Report
 

@@ -197,6 +197,50 @@ class PaperStatistics(BaseModel):
     sources: Dict[str, int]
 
 
+class CollectedDataSummary(BaseModel):
+    """Summary of data collected from various sources during research."""
+
+    sources_queried: List[str] = Field(
+        default_factory=list, description="List of all data sources that were queried"
+    )
+    sources_successful: List[str] = Field(
+        default_factory=list, description="List of data sources that returned data successfully"
+    )
+    sources_failed: List[str] = Field(
+        default_factory=list, description="List of data sources that failed or returned errors"
+    )
+    data_points_collected: int = Field(
+        default=0, description="Total number of data points collected across all sources"
+    )
+    collection_timestamp: datetime = Field(
+        default_factory=datetime.now, description="Timestamp when data collection completed"
+    )
+    cache_hits: int = Field(default=0, description="Number of data points retrieved from cache")
+    collection_duration_seconds: Optional[float] = Field(
+        default=None, description="Time taken for data collection in seconds"
+    )
+
+
+class ExtractedEntities(BaseModel):
+    """Entities extracted from research topic for targeted data collection."""
+
+    companies: List[str] = Field(
+        default_factory=list, description="Company names and stock tickers identified"
+    )
+    industries: List[str] = Field(default_factory=list, description="Industry sectors identified")
+    geographic_regions: List[str] = Field(
+        default_factory=list, description="Geographic regions (countries, states, cities)"
+    )
+    time_periods: List[str] = Field(
+        default_factory=list, description="Time periods mentioned (years, quarters, dates)"
+    )
+    key_metrics: List[str] = Field(default_factory=list, description="Key metrics or KPIs to track")
+    people: List[str] = Field(default_factory=list, description="Notable people mentioned")
+    keywords: List[str] = Field(
+        default_factory=list, description="Key search terms for data collection"
+    )
+
+
 class ResearchResponse(BaseModel):
     """
     Response schema for generated research project.
@@ -238,6 +282,14 @@ class ResearchResponse(BaseModel):
     # Export
     markdown_output: Optional[str] = Field(
         default=None, description="Full project exported as markdown"
+    )
+
+    # Data collection metadata
+    collected_data_summary: Optional[CollectedDataSummary] = Field(
+        default=None, description="Summary of data sources queried and data collected"
+    )
+    extracted_entities: Optional[ExtractedEntities] = Field(
+        default=None, description="Entities extracted from topic for targeted data collection"
     )
 
 

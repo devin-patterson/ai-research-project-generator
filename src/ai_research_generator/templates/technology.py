@@ -409,7 +409,9 @@ class TechnologyResearchTemplate(ResearchTemplate):
             "trend_forecast": "trend forecasting and future outlook",
         }
 
-        domain = domain_map.get(params.get("technology_domain", "artificial_intelligence"), "technology")
+        domain = domain_map.get(
+            params.get("technology_domain", "artificial_intelligence"), "technology"
+        )
         focus = focus_map.get(params.get("research_focus", "market_analysis"), "analysis")
 
         # Add industry context
@@ -469,7 +471,9 @@ class TechnologyResearchTemplate(ResearchTemplate):
                 context_parts.append(f"- {sub.replace('_', ' ').title()}")
 
         # Market Analysis
-        if params.get("include_market_sizing", True) or params.get("include_growth_projections", True):
+        if params.get("include_market_sizing", True) or params.get(
+            "include_growth_projections", True
+        ):
             context_parts.append("\n## Market Analysis Requirements")
             if params.get("include_market_sizing", True):
                 context_parts.append("- Include TAM/SAM/SOM market sizing")
@@ -544,11 +548,26 @@ class TechnologyResearchTemplate(ResearchTemplate):
         # Add domain-specific keywords
         domain = params.get("technology_domain", "")
         domain_keywords = {
-            "artificial_intelligence": ["artificial intelligence", "AI", "machine learning", "deep learning"],
+            "artificial_intelligence": [
+                "artificial intelligence",
+                "AI",
+                "machine learning",
+                "deep learning",
+            ],
             "machine_learning": ["machine learning", "ML", "neural networks", "model training"],
             "cloud_computing": ["cloud computing", "cloud infrastructure", "IaaS", "PaaS", "SaaS"],
-            "cybersecurity": ["cybersecurity", "information security", "threat detection", "zero trust"],
-            "data_analytics": ["data analytics", "business intelligence", "data science", "big data"],
+            "cybersecurity": [
+                "cybersecurity",
+                "information security",
+                "threat detection",
+                "zero trust",
+            ],
+            "data_analytics": [
+                "data analytics",
+                "business intelligence",
+                "data science",
+                "big data",
+            ],
             "blockchain": ["blockchain", "distributed ledger", "smart contracts", "web3"],
             "iot": ["internet of things", "IoT", "connected devices", "edge devices"],
         }

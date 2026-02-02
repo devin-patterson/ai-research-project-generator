@@ -442,7 +442,9 @@ class HealthcareResearchTemplate(ResearchTemplate):
         """Build research question from parameters."""
         focus = params.get("focus_area", "revenue_cycle").replace("_", " ")
         sector = params.get("healthcare_sector", "acute_care").replace("_", " ")
-        perspective = params.get("executive_perspective", "vp_revenue_cycle").replace("_", " ").title()
+        perspective = (
+            params.get("executive_perspective", "vp_revenue_cycle").replace("_", " ").title()
+        )
 
         # Build geographic context
         geo_context = ""

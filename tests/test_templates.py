@@ -34,7 +34,7 @@ class TestHealthcareTemplate:
     def test_parameters_defined(self, template):
         """Test template has required parameters."""
         param_names = [p.name for p in template.parameters]
-        
+
         # Check key parameters exist
         assert "healthcare_sector" in param_names
         assert "focus_area" in param_names
@@ -53,9 +53,9 @@ class TestHealthcareTemplate:
             "state": "Florida",
             "time_horizon": "3_years",
         }
-        
+
         topic = template.build_topic(params)
-        
+
         assert "revenue cycle management" in topic.lower()
         assert "acute care" in topic.lower()
         assert "florida" in topic.lower()
@@ -69,9 +69,9 @@ class TestHealthcareTemplate:
             "geographic_scope": "national",
             "time_horizon": "5_years",
         }
-        
+
         topic = template.build_topic(params)
-        
+
         assert "clinical operations" in topic.lower()
         assert "united states" in topic.lower()
 
@@ -84,9 +84,9 @@ class TestHealthcareTemplate:
             "state": "Florida",
             "executive_perspective": "vp_revenue_cycle",
         }
-        
+
         question = template.build_research_question(params)
-        
+
         assert "strategic adjustments" in question.lower()
         assert "florida" in question.lower()
         assert "vp revenue cycle" in question.lower()
@@ -105,9 +105,9 @@ class TestHealthcareTemplate:
             "include_technology_analysis": True,
             "specific_challenges": "High denial rates",
         }
-        
+
         context = template.build_additional_context(params)
-        
+
         assert "Healthcare Organization Profile" in context
         assert "Charge Capture" in context
         assert "Denial Management" in context
@@ -122,9 +122,9 @@ class TestHealthcareTemplate:
             "state": "Florida",
             "sub_focus_areas": ["charge_capture"],
         }
-        
+
         keywords = template.get_search_keywords(params)
-        
+
         assert "healthcare" in keywords
         assert "revenue cycle management" in keywords
         assert "Florida healthcare" in keywords
@@ -137,9 +137,9 @@ class TestHealthcareTemplate:
             "geographic_scope": "state",
             "state": "Florida",
         }
-        
+
         request = template.to_research_request(params)
-        
+
         assert "topic" in request
         assert "research_question" in request
         assert "discipline" in request
@@ -153,9 +153,9 @@ class TestHealthcareTemplate:
             "focus_area": "revenue_cycle",
             "geographic_scope": "state",
         }
-        
+
         is_valid, errors = template.validate_params(params)
-        
+
         assert is_valid is True
         assert len(errors) == 0
 
@@ -166,9 +166,9 @@ class TestHealthcareTemplate:
             "focus_area": "revenue_cycle",
             "geographic_scope": "state",
         }
-        
+
         is_valid, errors = template.validate_params(params)
-        
+
         assert is_valid is False
         assert len(errors) > 0
 
@@ -192,7 +192,7 @@ class TestTechnologyTemplate:
     def test_parameters_defined(self, template):
         """Test template has required parameters."""
         param_names = [p.name for p in template.parameters]
-        
+
         assert "technology_domain" in param_names
         assert "research_focus" in param_names
         assert "target_industry" in param_names
@@ -207,9 +207,9 @@ class TestTechnologyTemplate:
             "target_industry": "healthcare",
             "time_horizon": "3_years",
         }
-        
+
         topic = template.build_topic(params)
-        
+
         assert "artificial intelligence" in topic.lower()
         assert "healthcare" in topic.lower()
 
@@ -221,9 +221,9 @@ class TestTechnologyTemplate:
             "target_industry": "cross_industry",
             "time_horizon": "5_years",
         }
-        
+
         topic = template.build_topic(params)
-        
+
         assert "cloud computing" in topic.lower()
         assert "vendor comparison" in topic.lower()
 
@@ -235,9 +235,9 @@ class TestTechnologyTemplate:
             "target_industry": "financial_services",
             "organization_size": "enterprise",
         }
-        
+
         question = template.build_research_question(params)
-        
+
         assert "machine learning" in question.lower()
         assert "enterprise" in question.lower()
         assert "financial services" in question.lower()
@@ -253,9 +253,9 @@ class TestTechnologyTemplate:
             "specific_vendors": "OpenAI, Google, Microsoft",
             "adoption_barriers": ["skills_gap", "budget_constraints"],
         }
-        
+
         context = template.build_additional_context(params)
-        
+
         assert "Technology Research Profile" in context
         assert "Generative Ai" in context
         assert "Market Analysis Requirements" in context
@@ -269,9 +269,9 @@ class TestTechnologyTemplate:
             "sub_domains": ["generative_ai"],
             "target_industry": "healthcare",
         }
-        
+
         keywords = template.get_search_keywords(params)
-        
+
         assert "artificial intelligence" in keywords
         assert "AI" in keywords
         assert "healthcare technology" in keywords
@@ -282,9 +282,9 @@ class TestTechnologyTemplate:
             "technology_domain": "cybersecurity",
             "research_focus": "technology_evaluation",
         }
-        
+
         request = template.to_research_request(params)
-        
+
         assert request["discipline"] == "technology"
         assert "cybersecurity" in request["topic"].lower()
 
@@ -310,9 +310,9 @@ class TestInvestmentTemplate:
             "investment_horizon": 10,
             "asset_classes": ["stocks", "bonds", "etfs"],
         }
-        
+
         topic = template.build_topic(params)
-        
+
         assert "long-term" in topic.lower()
         assert "10-year" in topic.lower()
 
@@ -323,9 +323,9 @@ class TestInvestmentTemplate:
             "investment_horizon": 20,
             "risk_tolerance": "moderate",
         }
-        
+
         question = template.build_research_question(params)
-        
+
         assert "moderate" in question.lower()
         assert "20-year" in question.lower()
 
@@ -342,7 +342,7 @@ class TestTemplateManager:
         """Test all built-in templates are registered."""
         templates = manager.list_templates()
         template_ids = [t["template_id"] for t in templates]
-        
+
         assert "investment_research" in template_ids
         assert "healthcare_research" in template_ids
         assert "technology_research" in template_ids
@@ -350,33 +350,33 @@ class TestTemplateManager:
     def test_get_template(self, manager):
         """Test getting template by ID."""
         template = manager.get("healthcare_research")
-        
+
         assert template is not None
         assert template.template_id == "healthcare_research"
 
     def test_get_nonexistent_template(self, manager):
         """Test getting nonexistent template returns None."""
         template = manager.get("nonexistent_template")
-        
+
         assert template is None
 
     def test_list_by_category(self, manager):
         """Test listing templates by category."""
         healthcare_templates = manager.list_by_category("Healthcare")
-        
+
         assert len(healthcare_templates) >= 1
         assert healthcare_templates[0]["category"] == "Healthcare"
 
     def test_list_by_tag(self, manager):
         """Test listing templates by tag."""
         ai_templates = manager.list_by_tag("ai-ml")
-        
+
         assert len(ai_templates) >= 1
 
     def test_get_categories(self, manager):
         """Test getting all categories."""
         categories = manager.get_categories()
-        
+
         assert "Healthcare" in categories
         assert "Technology" in categories
         assert "Finance" in categories
@@ -384,7 +384,7 @@ class TestTemplateManager:
     def test_get_tags(self, manager):
         """Test getting all tags."""
         tags = manager.get_tags()
-        
+
         assert "healthcare" in tags
         assert "technology" in tags
         assert "investment" in tags
@@ -397,9 +397,9 @@ class TestTemplateManager:
             "geographic_scope": "state",
             "state": "Texas",
         }
-        
+
         request = manager.create_research_request("healthcare_research", params)
-        
+
         assert "topic" in request
         assert "texas" in request["topic"].lower()
 
@@ -407,7 +407,7 @@ class TestTemplateManager:
         """Test creating request with invalid template raises error."""
         with pytest.raises(ValueError) as exc_info:
             manager.create_research_request("invalid_template", {})
-        
+
         assert "not found" in str(exc_info.value).lower()
 
     def test_validate_params(self, manager):
@@ -417,15 +417,15 @@ class TestTemplateManager:
             "focus_area": "revenue_cycle",
             "geographic_scope": "state",
         }
-        
+
         is_valid, errors = manager.validate_params("healthcare_research", params)
-        
+
         assert is_valid is True
 
     def test_get_defaults(self, manager):
         """Test getting default values."""
         defaults = manager.get_defaults("healthcare_research")
-        
+
         assert "healthcare_sector" in defaults
         assert defaults["healthcare_sector"] == "acute_care"
 
@@ -437,14 +437,14 @@ class TestSingletonManager:
         """Test get_template_manager returns same instance."""
         manager1 = get_template_manager()
         manager2 = get_template_manager()
-        
+
         assert manager1 is manager2
 
     def test_singleton_has_templates(self):
         """Test singleton manager has templates registered."""
         manager = get_template_manager()
         templates = manager.list_templates()
-        
+
         assert len(templates) >= 3
 
 
@@ -455,11 +455,11 @@ class TestParameterTypes:
         """Test SELECT parameter validates options."""
         template = HealthcareResearchTemplate()
         sector_param = next(p for p in template.parameters if p.name == "healthcare_sector")
-        
+
         # Valid value
         is_valid, error = sector_param.validate("acute_care")
         assert is_valid is True
-        
+
         # Invalid value
         is_valid, error = sector_param.validate("invalid_value")
         assert is_valid is False
@@ -468,11 +468,11 @@ class TestParameterTypes:
         """Test MULTI_SELECT parameter validates options."""
         template = HealthcareResearchTemplate()
         payer_param = next(p for p in template.parameters if p.name == "payer_focus")
-        
+
         # Valid values
         is_valid, error = payer_param.validate(["medicare", "medicaid"])
         assert is_valid is True
-        
+
         # Invalid value in list
         is_valid, error = payer_param.validate(["medicare", "invalid_payer"])
         assert is_valid is False
@@ -481,11 +481,11 @@ class TestParameterTypes:
         """Test INTEGER parameter validates range."""
         template = HealthcareResearchTemplate()
         paper_param = next(p for p in template.parameters if p.name == "paper_limit")
-        
+
         # Valid value
         is_valid, error = paper_param.validate(25)
         assert is_valid is True
-        
+
         # Below minimum
         is_valid, error = paper_param.validate(5)
         assert is_valid is False
@@ -493,12 +493,14 @@ class TestParameterTypes:
     def test_boolean_parameter_validation(self):
         """Test BOOLEAN parameter validates type."""
         template = HealthcareResearchTemplate()
-        staffing_param = next(p for p in template.parameters if p.name == "include_staffing_analysis")
-        
+        staffing_param = next(
+            p for p in template.parameters if p.name == "include_staffing_analysis"
+        )
+
         # Valid value
         is_valid, error = staffing_param.validate(True)
         assert is_valid is True
-        
+
         # Invalid type
         is_valid, error = staffing_param.validate("yes")
         assert is_valid is False

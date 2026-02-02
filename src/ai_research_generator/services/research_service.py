@@ -537,7 +537,7 @@ class ResearchService:
     async def _extract_topic_entities(self, request: ResearchRequest) -> ExtractedEntities:
         """
         Use LLM to extract structured entities from the research topic.
-        
+
         This enables targeted data collection based on what's actually in the topic.
         """
         prompt = f"""Extract key entities from this research topic for data collection.
@@ -545,7 +545,7 @@ class ResearchService:
 TOPIC: {request.topic}
 RESEARCH QUESTION: {request.research_question}
 DISCIPLINE: {request.discipline}
-ADDITIONAL CONTEXT: {request.additional_context or 'None provided'}
+ADDITIONAL CONTEXT: {request.additional_context or "None provided"}
 
 Return a JSON object with these fields (use empty arrays if none found):
 {{
@@ -565,19 +565,19 @@ Be thorough - extract ALL relevant entities for comprehensive data collection.""
                 prompt,
                 system_prompt="You are an entity extraction specialist. Return ONLY valid JSON, no other text.",
             )
-            
+
             import json
             import re
-            
+
             # Extract JSON from response
             content = response.content.strip()
             # Try to find JSON in the response
-            json_match = re.search(r'\{[\s\S]*\}', content)
+            json_match = re.search(r"\{[\s\S]*\}", content)
             if json_match:
                 entities_dict = json.loads(json_match.group())
             else:
                 entities_dict = json.loads(content)
-            
+
             return ExtractedEntities(
                 companies=entities_dict.get("companies", []),
                 industries=entities_dict.get("industries", []),
@@ -609,7 +609,7 @@ Be thorough - extract ALL relevant entities for comprehensive data collection.""
         sources_successful = []
         sources_failed = []
         total_data_points = 0
-        
+
         for source, data in collected_data.items():
             if data.get("error"):
                 sources_failed.append(source)
@@ -630,9 +630,9 @@ Be thorough - extract ALL relevant entities for comprehensive data collection.""
                     total_data_points += len(data["results"])
                 if "posts" in data:
                     total_data_points += len(data["posts"])
-        
+
         collection_duration = (datetime.now() - collection_start_time).total_seconds()
-        
+
         return CollectedDataSummary(
             sources_queried=sources_queried,
             sources_successful=sources_successful,
@@ -663,7 +663,9 @@ Be thorough - extract ALL relevant entities for comprehensive data collection.""
             logger.info("Extracting entities from research topic...")
             extracted_entities = await self._extract_topic_entities(request)
             content["extracted_entities"] = extracted_entities
-            logger.info(f"Extracted entities: companies={extracted_entities.companies}, industries={extracted_entities.industries}, regions={extracted_entities.geographic_regions}")
+            logger.info(
+                f"Extracted entities: companies={extracted_entities.companies}, industries={extracted_entities.industries}, regions={extracted_entities.geographic_regions}"
+            )
 
             # Step 2: Analyze topic to understand data needs
             result = self._llm_assistant.analyze_topic(request.topic, request.discipline)
@@ -781,7 +783,7 @@ Be thorough - extract ALL relevant entities for comprehensive data collection.""
 
             # Store collected data in content for reference
             content["collected_data"] = collected_data
-            
+
             # Build collected data summary
             content["collected_data_summary"] = self._build_collected_data_summary(
                 collected_data, collection_start_time
@@ -1294,10 +1296,7 @@ Be thorough - extract ALL relevant entities for comprehensive data collection.""
                     }
                     for q in result.quotes
                 ],
-                "news": [
-                    {"headline": n.headline, "source": n.source}
-                    for n in result.news[:10]
-                ],
+                "news": [{"headline": n.headline, "source": n.source} for n in result.news[:10]],
             }
         except Exception as e:
             logger.warning(f"Finnhub data collection failed: {e}")
@@ -1479,9 +1478,7 @@ Be thorough - extract ALL relevant entities for comprehensive data collection.""
         if "sec_filings" in collected_data and collected_data["sec_filings"].get("filings"):
             context_parts.append("\n## SEC EDGAR Filings")
             for f in collected_data["sec_filings"].get("filings", []):
-                context_parts.append(
-                    f"- {f['company']} {f['form_type']} ({f['filing_date']})"
-                )
+                context_parts.append(f"- {f['company']} {f['form_type']} ({f['filing_date']})")
 
         # Add social sentiment context
         if "social_sentiment" in collected_data:
@@ -1506,7 +1503,7 @@ Be thorough - extract ALL relevant entities for comprehensive data collection.""
                 context_parts.append(f"- {p['title']} ({p.get('year', 'N/A')})")
 
         collected_context = "\n".join(context_parts)
-        
+
         # Build list of data sources used for citation
         sources_used = [k for k, v in collected_data.items() if v and not v.get("error")]
 
@@ -1524,7 +1521,7 @@ TOPIC: {request.topic}
 
 DISCIPLINE: {request.discipline}
 
-DATA SOURCES USED: {', '.join(sources_used)}
+DATA SOURCES USED: {", ".join(sources_used)}
 
 COLLECTED DATA:
 {collected_context}
@@ -1549,42 +1546,37 @@ Format the report with clear sections and be specific - use actual numbers and d
     def _get_discipline_specific_prompts(self, discipline: str) -> tuple[str, str]:
         """
         Get discipline-specific system prompt and instructions for report synthesis.
-        
+
         Returns:
             Tuple of (system_prompt, discipline_instructions)
         """
         discipline_lower = discipline.lower() if discipline else "general"
-        
+
         # Discipline-specific system prompts
         system_prompts = {
             "finance": """You are a CFA-certified senior financial analyst with expertise in investment research, 
 portfolio management, and market analysis. You provide rigorous, data-driven analysis with specific 
 attention to risk factors, valuation metrics, and market conditions. Always cite specific data points 
 and provide actionable investment insights with clear rationale.""",
-
             "healthcare": """You are a senior healthcare industry consultant with expertise in revenue cycle 
 management, healthcare operations, regulatory compliance, and health IT. You understand CMS regulations, 
 payer dynamics, and operational best practices. Provide actionable recommendations for healthcare executives 
 with specific metrics, benchmarks, and implementation timelines.""",
-
             "economics": """You are a senior economist with expertise in macroeconomic analysis, monetary policy, 
 and economic forecasting. You analyze economic indicators, policy impacts, and market dynamics with 
 rigorous methodology. Provide data-driven insights with clear causal reasoning and uncertainty quantification.""",
-
             "technology": """You are a senior technology analyst with expertise in emerging technologies, 
 market dynamics, and competitive analysis. You understand technical architectures, adoption curves, 
 and business model implications. Provide strategic insights with specific market data and trend analysis.""",
-
             "business": """You are a senior management consultant with expertise in corporate strategy, 
 operations, and organizational effectiveness. You provide actionable recommendations backed by 
 industry benchmarks, competitive analysis, and best practices. Focus on implementation feasibility 
 and measurable outcomes.""",
-
             "general": """You are a research analyst specializing in synthesizing data from multiple sources 
 into actionable insights. You provide comprehensive, balanced analysis with clear citations and 
 evidence-based recommendations. Always distinguish between data-backed findings and analytical conclusions.""",
         }
-        
+
         # Discipline-specific report instructions
         discipline_instructions = {
             "finance": """Generate a detailed financial analysis report with these sections:
@@ -1595,7 +1587,6 @@ evidence-based recommendations. Always distinguish between data-backed findings 
 5. **Valuation Analysis** - Fair value estimates with methodology
 6. **Recommendations** - Specific actionable recommendations with rationale
 7. **Limitations** - Data gaps and analytical caveats""",
-
             "healthcare": """Generate a detailed healthcare industry report with these sections:
 1. **Executive Summary** - Key findings and strategic recommendations
 2. **Regulatory Landscape** - Current and upcoming regulatory changes
@@ -1606,7 +1597,6 @@ evidence-based recommendations. Always distinguish between data-backed findings 
 7. **Implementation Roadmap** - Prioritized action items with timelines
 8. **Risk Mitigation** - Key risks and mitigation strategies
 9. **Limitations** - Data gaps and areas requiring further research""",
-
             "economics": """Generate a detailed economic analysis report with these sections:
 1. **Executive Summary** - Key economic findings and outlook
 2. **Macroeconomic Indicators** - GDP, inflation, employment analysis
@@ -1616,7 +1606,6 @@ evidence-based recommendations. Always distinguish between data-backed findings 
 6. **Risk Factors** - Economic risks and scenarios
 7. **Policy Implications** - Recommendations for stakeholders
 8. **Limitations** - Data limitations and forecast uncertainty""",
-
             "technology": """Generate a detailed technology analysis report with these sections:
 1. **Executive Summary** - Key findings and strategic implications
 2. **Technology Landscape** - Current state and emerging trends
@@ -1626,7 +1615,6 @@ evidence-based recommendations. Always distinguish between data-backed findings 
 6. **Strategic Recommendations** - Actionable technology strategy
 7. **Implementation Considerations** - Technical and organizational factors
 8. **Limitations** - Data gaps and analytical caveats""",
-
             "business": """Generate a detailed business analysis report with these sections:
 1. **Executive Summary** - Key findings and strategic recommendations
 2. **Industry Analysis** - Market dynamics and competitive landscape
@@ -1636,7 +1624,6 @@ evidence-based recommendations. Always distinguish between data-backed findings 
 6. **Implementation Plan** - Prioritized action items with timelines
 7. **Risk Assessment** - Key risks and mitigation strategies
 8. **Limitations** - Data gaps and areas for further analysis""",
-
             "general": """Generate a detailed research report with these sections:
 1. **Executive Summary** - Key findings and recommendations
 2. **Background & Context** - Relevant context and scope
@@ -1646,24 +1633,35 @@ evidence-based recommendations. Always distinguish between data-backed findings 
 6. **Limitations** - Data gaps and analytical caveats
 7. **Next Steps** - Suggested follow-up actions""",
         }
-        
+
         # Match discipline to closest category
         matched_discipline = "general"
         for key in system_prompts.keys():
             if key in discipline_lower or discipline_lower in key:
                 matched_discipline = key
                 break
-        
+
         # Special handling for common variations
-        if any(term in discipline_lower for term in ["revenue", "medical", "hospital", "clinical", "pharma"]):
+        if any(
+            term in discipline_lower
+            for term in ["revenue", "medical", "hospital", "clinical", "pharma"]
+        ):
             matched_discipline = "healthcare"
-        elif any(term in discipline_lower for term in ["invest", "stock", "market", "trading", "portfolio"]):
+        elif any(
+            term in discipline_lower
+            for term in ["invest", "stock", "market", "trading", "portfolio"]
+        ):
             matched_discipline = "finance"
-        elif any(term in discipline_lower for term in ["software", "ai", "data", "digital", "cyber"]):
+        elif any(
+            term in discipline_lower for term in ["software", "ai", "data", "digital", "cyber"]
+        ):
             matched_discipline = "technology"
-        elif any(term in discipline_lower for term in ["management", "strategy", "operations", "consulting"]):
+        elif any(
+            term in discipline_lower
+            for term in ["management", "strategy", "operations", "consulting"]
+        ):
             matched_discipline = "business"
-        
+
         return system_prompts[matched_discipline], discipline_instructions[matched_discipline]
 
     def _export_markdown(self, response: ResearchResponse) -> str:
@@ -1759,8 +1757,8 @@ Year: {paper.year or "N/A"} | Citations: {paper.citation_count or "N/A"} | Sourc
             md += f"""## 📊 Data Collection Summary
 
 **Sources Queried**: {len(summary.sources_queried)}  
-**Sources Successful**: {len(summary.sources_successful)} ({', '.join(summary.sources_successful) if summary.sources_successful else 'None'})  
-**Sources Failed**: {len(summary.sources_failed)} ({', '.join(summary.sources_failed) if summary.sources_failed else 'None'})  
+**Sources Successful**: {len(summary.sources_successful)} ({", ".join(summary.sources_successful) if summary.sources_successful else "None"})  
+**Sources Failed**: {len(summary.sources_failed)} ({", ".join(summary.sources_failed) if summary.sources_failed else "None"})  
 **Data Points Collected**: {summary.data_points_collected}  
 **Collection Time**: {summary.collection_duration_seconds:.2f}s  
 

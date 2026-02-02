@@ -9,6 +9,8 @@ from loguru import logger
 
 from .base import ResearchTemplate
 from .investment import InvestmentResearchTemplate
+from .healthcare import HealthcareResearchTemplate
+from .technology import TechnologyResearchTemplate
 
 
 class TemplateManager:
@@ -25,6 +27,8 @@ class TemplateManager:
         """Register all built-in templates."""
         builtin = [
             InvestmentResearchTemplate(),
+            HealthcareResearchTemplate(),
+            TechnologyResearchTemplate(),
         ]
         for template in builtin:
             self.register(template)

@@ -67,7 +67,7 @@ jobs:
         continue-on-error: true  # Tests may fail if no test files exist
       
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: matrix.python-version == '3.12'
         with:
           files: ./coverage.xml

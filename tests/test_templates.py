@@ -12,7 +12,6 @@ from src.ai_research_generator.templates import (
     InvestmentResearchTemplate,
     TemplateManager,
     get_template_manager,
-    ParameterType,
 )
 
 
